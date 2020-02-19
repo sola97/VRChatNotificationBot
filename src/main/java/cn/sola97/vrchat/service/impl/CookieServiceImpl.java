@@ -1,0 +1,145 @@
+package cn.sola97.vrchat.service.impl;
+
+import cn.sola97.vrchat.entity.CurrentUser;
+import cn.sola97.vrchat.service.CookieService;
+import cn.sola97.vrchat.utils.CookieUtil;
+import cn.sola97.vrchat.utils.HttpUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.http.*;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import java.net.Proxy;
+import java.util.Arrays;
+import java.util.Collections;
+
+@Service
+public class CookieServiceImpl implements CookieService {
+    private static final Logger logger = LoggerFactory.getLogger(CookieServiceImpl.class);
+
+    @Value("${vrchat.cookieKey}")
+    private String cookieKey;
+    @Value("${vrchat.username}")
+    private String username;
+    @Value("${vrchat.password}")
+    private String password;
+    @Value("${vrchat.rootUri}")
+    String uri;
+    @Value("${vrchat.currentUserId}")
+    String currentUserIdKey;
+    @Value("${vrchat.currentUser}")
+    String currentUserKey;
+    @Value("${vrchat.currentUserName}")
+    String currentUserNameKey;
+    @Value("${vrchat.api.proxy:}")
+    String proxyString;
+    @Autowired
+    private RedisTemplate redisTemplate;
+
+    private String authenticate() {
+        Proxy proxy = HttpUtil.getProxy(proxyString);
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.USER_AGENT, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36");
+        headers.setBasicAuth(username, password);
+        String URL = uri + "/auth/user?apiKey=JlE5Jldo5Jibnk5O5hTx6XVqsJu4WJ26";
+
+        MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
+        converter.setSupportedMediaTypes(Collections.singletonList(MediaType.ALL));
+        RestTemplate restTemplate = new RestTemplate();
+
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        if (proxy != null)
+            requestFactory.setProxy(proxy);
+        restTemplate.setMessageConverters(Collections.singletonList(converter));
+        restTemplate.setRequestFactory(requestFactory);
+
+        ResponseEntity<CurrentUser> response = restTemplate.exchange(URL, HttpMethod.GET, new HttpEntity<>(headers), CurrentUser.class);
+        String cookies = CookieUtil.processHeaders(response.getHeaders());
+        setCookie(cookies);
+        CurrentUser currentUser = response.getBody();
+        setCurrentUserName(currentUser.getDisplayName());
+        setCurrentUserId(currentUser.getId());
+        setCurrentUser(currentUser);
+        return cookies;
+    }
+
+    @Override
+    public Boolean deleteCookie() {
+        logger.info("删除Cookie");
+        return deleteCurrentUser() && redisTemplate.delete(cookieKey);
+    }
+
+    @Override
+    public String getCookie() {
+        if (exitsCookie()) {
+            return redisTemplate.opsForValue().get(cookieKey).toString();
+        }
+        return authenticate();
+    }
+
+    private void setCurrentUserId(String userId) {
+        logger.info("更新存储的用户Id");
+        redisTemplate.opsForValue().set(currentUserIdKey, userId);
+    }
+
+    private void setCurrentUser(CurrentUser user) {
+        logger.info("更新存储的用户");
+        redisTemplate.opsForValue().set(currentUserKey, user);
+    }
+
+    private void setCurrentUserName(String displayName) {
+        logger.info("更新存储的用户名");
+        redisTemplate.opsForValue().set(currentUserNameKey, displayName);
+    }
+
+    private Boolean deleteCurrentUser() {
+        return redisTemplate.delete(Arrays.asList(currentUserIdKey, currentUserKey, currentUserNameKey)) > 0;
+    }
+
+    @Override
+    public String getCurrentUserId() {
+        if (redisTemplate.hasKey(currentUserIdKey))
+            return redisTemplate.opsForValue().get(currentUserIdKey).toString();
+        authenticate();
+        return getCurrentUserId();
+    }
+
+    @Override
+    public String getCurrentUserName() {
+        if (redisTemplate.hasKey(currentUserNameKey))
+            return redisTemplate.opsForValue().get(currentUserNameKey).toString();
+        authenticate();
+        return getCurrentUserName();
+    }
+
+    @Override
+    public CurrentUser getCurrentUser() {
+        if (redisTemplate.hasKey(currentUserKey))
+            return (CurrentUser) redisTemplate.opsForValue().get(currentUserKey);
+        authenticate();
+        return getCurrentUser();
+    }
+
+    @Override
+    public void setCookie(String cookies) {
+        logger.info("更新Cookie");
+        redisTemplate.opsForValue().set(cookieKey, cookies);
+    }
+
+    @Override
+    public Boolean exitsCookie() {
+        return redisTemplate.hasKey(cookieKey);
+    }
+
+    @Override
+    public String getAuthToken() {
+        return CookieUtil.convertStringToMap(getCookie()).get("auth");
+    }
+
+}
