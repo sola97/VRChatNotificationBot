@@ -29,13 +29,15 @@ public class AddCommand extends ChannelCommand {
         this.aliases = new String[]{"upd", "update"};
         this.help = "`add|update [username] [@discordUser] [mask 63]`         在一个Channel订阅好友\n" +
                 "```假设好友名为 Lucy a1b2 （检索基于正则[\\s\\S]*keyword[\\s\\S]* 大小写不敏感）\n" +
-                "    用法一：add                            获取Channel名作为好友检索的关键字\n" +
+                "    用法一：add                            默认使用Channel名作为好友检索的关键字\n" +
                 "    用法二：add lucy                       使用lucy为好友检索的关键字\n" +
-                "    用法三：add ^lucy$                     如果存在同名帐号Lucy,可在首尾加上限定符\n" +
+                "    用法三：add ^lucy$                     如果存在同名帐号Lucy,可加上匹配首尾\n" +
                 "    用法四：add mask 1                     使用Channel名检索，同时直接设置只显示上线消息\n" +
-                "    用法五：add @届かない恋                设置消息@提醒\n" +
-                "    用法六：add lucy @届かない恋 mask 1    设置该好友上线时@届かない恋\n" +
-                "    PS: mask的定义可使用showconfig命令查看" +
+                "    用法五：add @届かない恋                 设置消息@提醒\n" +
+                "    用法六：add lucy @届かない恋 mask 1     设置该好友上线时@届かない恋\n" +
+                "    用法七：add * mask 6                   在该Channel设置显示所有好友的上线下消息\n" +
+                "    用法八：add * @届かない恋 mask 32       在该Channel设置显示所有好友的Invite、FriendRequest提醒\n" +
+                "    PS: mask值的定义可使用showconfig命令查看" +
                 "```";
         this.restTemplate=restTemplate;
     }
@@ -48,7 +50,7 @@ public class AddCommand extends ChannelCommand {
                 .allowTextInput(true)
                 .useCancelButton(true)
                 .useNumbers()
-                .setTimeout(30, TimeUnit.SECONDS);
+                .setTimeout(60, TimeUnit.SECONDS);
         String channelId = event.getChannel().getId();
         String uri = "/rest/add/subscribe/{channelId}/{displayName}";
         List<String> discordNames = event.getMessage().getMentionedUsers().stream().map(User::getName).collect(Collectors.toList());

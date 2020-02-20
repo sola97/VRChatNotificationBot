@@ -22,7 +22,7 @@ public class ShowUserCommand extends ChannelCommand {
         this.help = "`showuser [username]`    显示好友信息\n" +
                 "```" +
                 "    用法一：showuser lucy                  显示好友 Lucy a1b2 的当前状态\n" +
-                "    用法二：showuser                       显示当前Channel的所有已订阅用户的信息```\n";
+                "    用法二：showuser                       显示该Channel的所有已订阅用户的信息```\n";
         this.restTemplate = restTemplate;
     }
 
