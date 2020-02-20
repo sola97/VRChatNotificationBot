@@ -1,0 +1,48 @@
+version: '3.7'
+
+services:
+  bot:
+    image: sola97/vrchat-bot:latest
+    container_name: vrchat-bot
+    restart: always
+    depends_on:
+    - mysql
+    - redis
+    environment:
+        REDIS_HOSTNAME: redis
+        SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/vrchat?characterEncoding=UTF-8
+        SPRING_DATASOURCE_USERNAME: root
+        VRCHAT_USERNAME: #Username/Email
+        VRCHAT_PASSWORD: #Password
+        BOT_TOKEN:       #get token here https://discordapp.com/developers/applications/
+        BOT_OWNERID:     #get your discord id https://support.discordapp.com/hc/en-us/articles/206346498
+    networks:
+      - vrchat-net
+  mysql:
+    image: mysql:5.7
+    container_name: vrchat-mysql
+    volumes:
+      - vrchat-data:/var/lib/mysql
+      - ./init.sql:/data/application/init.sql
+    restart: always
+    command: --init-file /data/application/init.sql
+    environment:
+      MYSQL_DATABASE: vrchat
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+    networks:
+      - vrchat-net
+  redis:
+    restart: always
+    image: redis:alpine
+    container_name: vrchat-redis
+    command: redis-server /usr/local/etc/redis/redis.conf
+    volumes:
+     - vrchat-data:/data
+     - ./redis.conf:/usr/local/etc/redis/redis.conf
+    networks:
+     - vrchat-net
+volumes:
+    vrchat-data: {}
+networks:
+    vrchat-net:
+
