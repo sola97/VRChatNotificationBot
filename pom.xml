@@ -10,7 +10,7 @@
     </parent>
     <groupId>cn.sola97</groupId>
     <artifactId>vrchat</artifactId>
-    <version>0.1.0</version>
+    <version>0.1.1</version>
     <name>vrchat-notification-bot</name>
     <description>check vrchat friends status on discord</description>
 
