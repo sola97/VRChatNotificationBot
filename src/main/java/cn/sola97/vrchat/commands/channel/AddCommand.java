@@ -35,7 +35,7 @@ public class AddCommand extends ChannelCommand {
                 "    用法四：add mask 1                     使用Channel名检索，同时直接设置只显示上线消息\n" +
                 "    用法五：add @届かない恋                 设置消息@提醒\n" +
                 "    用法六：add lucy @届かない恋 mask 1     设置该好友上线时@届かない恋\n" +
-                "    用法七：add * mask 6                   在该Channel设置显示所有好友的上线下消息\n" +
+                "    用法七：add * mask 6                   在该Channel设置显示所有好友的上下线消息\n" +
                 "    用法八：add * @届かない恋 mask 32       在该Channel设置显示所有好友的Invite、FriendRequest提醒\n" +
                 "    PS: mask值的定义可使用showconfig命令查看" +
                 "```";

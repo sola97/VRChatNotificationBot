@@ -7,7 +7,8 @@ import java.util.Map;
 public enum  StatusEnums {
     ACTIVE("https://i.loli.net/2019/11/25/B7wGrYSUCotHujA.png"),
     JOIN_ME("https://i.loli.net/2019/11/25/Ul58EY2vhS4cJmT.png"),
-    BUSY("https://i.loli.net/2019/11/25/imcKOH9ubZC2xVt.png");
+    BUSY("https://i.loli.net/2019/11/25/imcKOH9ubZC2xVt.png"),
+    ASKME("https://i.loli.net/2020/04/05/HnJb6OSZFDmBz3U.png");
     private static final Map<String, StatusEnums> mMap = Collections.unmodifiableMap(Mapping());
     String url;
     StatusEnums(String url) {
@@ -26,6 +27,7 @@ public enum  StatusEnums {
         map.put("active",StatusEnums.ACTIVE);
         map.put("join me",StatusEnums.JOIN_ME);
         map.put("busy",StatusEnums.BUSY);
+        map.put("ask me",StatusEnums.ASKME);
         return map;
     }
 }

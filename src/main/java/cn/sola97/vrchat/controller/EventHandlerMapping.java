@@ -25,7 +25,7 @@ public class EventHandlerMapping {
     public void handle(String type, VRCEventDTO event) {
         if ("friend-active".equals(type)) handlerMapping.friendActive(event);
         else if ("friend-location".equals(type)) handlerMapping.friendLocation(event);
-        else if ("friend-offline".equals(type)) handlerMapping.friendOffline(event);
+//        else if ("friend-offline".equals(type)) handlerMapping.friendOffline(event);
 //        else if ("friend-update".equals(type)) handlerMapping.friendUpdate(event);
         else if ("friend-online".equals(type)) handlerMapping.friendOnline(event);
         else if ("user-active".equals(type)) handlerMapping.userActive(event);
