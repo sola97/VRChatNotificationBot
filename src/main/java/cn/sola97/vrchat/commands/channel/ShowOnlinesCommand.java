@@ -56,6 +56,7 @@ public class ShowOnlinesCommand extends ChannelCommand {
                         String emoji = "⚪️";
                         if (status.equals("join me")) emoji = "🔵";
                         else if (status.equals("busy")) emoji = "🔴";
+                        else if (status.equals("ask me")) emoji = "🟠";
                         else if (status.equals("active")) emoji = "🟢";
                         line.add(emoji + "　" + user.getDisplayName());
                         line.add("　　　" + "\uD83C\uDFF7" + "　" + user.getStatusDescription());
