@@ -198,6 +198,10 @@ public class VRChatApiServiceImpl implements VRChatApiService {
             user.setId("*");
             return Collections.singletonList(user);
         }
+        if (displayName.startsWith("usr_")) {
+            User user = getUserById(displayName, false);
+            return Collections.singletonList(user);
+        }
         if (cookieServiceImpl.getCurrentUserName().matches("(?i:[\\s\\S]*" + displayName + "[\\s\\S]*)")) {
             return Collections.singletonList(getCurrentUserDetails(true));
         }

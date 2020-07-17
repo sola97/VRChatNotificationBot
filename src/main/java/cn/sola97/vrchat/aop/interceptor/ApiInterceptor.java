@@ -1,6 +1,7 @@
 package cn.sola97.vrchat.aop.interceptor;
 
 import cn.sola97.vrchat.service.CookieService;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,8 +23,9 @@ public class ApiInterceptor implements ClientHttpRequestInterceptor {
     @Autowired
     CookieService cookieServiceImpl;
 
+    @NotNull
     @Override
-    public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
+    public ClientHttpResponse intercept(HttpRequest request, @NotNull byte[] body, ClientHttpRequestExecution execution) throws IOException {
         long start = System.currentTimeMillis();
         URI uri = UriComponentsBuilder.fromUri(request.getURI()).queryParam("apiKey", "JlE5Jldo5Jibnk5O5hTx6XVqsJu4WJ26").build().toUri();
         HttpHeaders headers = request.getHeaders();
@@ -42,11 +44,13 @@ public class ApiInterceptor implements ClientHttpRequestInterceptor {
             this.headers = headers;
         }
 
+        @NotNull
         @Override
         public URI getURI() {
             return uri;
         }
 
+        @NotNull
         @Override
         public HttpHeaders getHeaders() {
             return headers;

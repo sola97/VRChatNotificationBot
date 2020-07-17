@@ -57,22 +57,20 @@ public class CommandServiceImpl implements CommandService {
         int maxMask = Arrays.stream(EventTypeEnums.values()).mapToInt(EventTypeEnums::getMask).sum();
         if (subMask > maxMask || pingMask > maxMask || subMask < 0 || pingMask < 0)
             return new CommandResultVO().setCode(400).setMsg("mask超出范围，mask应在 0-" + maxMask + "之间");
-        User user;
-        //模糊匹配用户id
-        if (!"*".equals(displayName)) {
-            List<User> users = vrchatApiServiceImpl.getUserByDisplayName(displayName);
-            if (users.size() == 1) {
-                user = users.get(0);
-            } else if (users.size() > 1) {
-                return new CommandResultVO().setCode(400).setMsg(displayName + "有多个对应用户").setData(users.stream().map(User::getDisplayName).collect(Collectors.joining("、")));
-            } else {
-                return new CommandResultVO().setCode(404).setMsg("找不到" + displayName + "对应用户");
+        User user = null;
+
+        List<User> users = vrchatApiServiceImpl.getUserByDisplayName(displayName);
+        if (users.size() == 1) {
+            user = users.get(0);
+            if (user.getId() == null) {
+                return new CommandResultVO().setCode(500).setMsg("没有获取到该用户的数据");
             }
+        } else if (users.size() > 1) {
+            return new CommandResultVO().setCode(400).setMsg(displayName + "有多个对应用户").setData(users.stream().map(User::getDisplayName).collect(Collectors.joining("、")));
         } else {
-            user = new User();
-            user.setDisplayName("*");
-            user.setId("*");
+            return new CommandResultVO().setCode(404).setMsg("找不到" + displayName + "对应用户");
         }
+
         int index = 0;
         index += 1;
         //channel

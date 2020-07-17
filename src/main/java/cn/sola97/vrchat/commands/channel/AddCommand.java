@@ -73,19 +73,26 @@ public class AddCommand extends ChannelCommand {
                 .queryParam("channelName", event.getChannel().getName())
                 .queryParam("discordIds", discordIds.toArray())
                 .queryParam("discordNames", discordNames.toArray());
-        String usrId = getUsrIdByDisplayName(args[0]);
+
+        String usrId = null;
+        if (args[0].startsWith("usr_")) {
+            usrId = args[0];
+        } else {
+            usrId = getUsrIdByDisplayName(args[0]);
+        }
         if (discordIds.isEmpty()) {
             uriComponentsBuilder.queryParam("submask", strMask == null ? querySubscribeMask(channelId, usrId) : strMask);
         } else {
             uriComponentsBuilder.queryParam("pingmask", strMask == null ? queryPingMask(channelId, usrId, discordIds.get(0)) : strMask);
         }
         URI URL = uriComponentsBuilder.buildAndExpand(urlParams).toUri();
+        String finalUsrId = usrId;
         event.getChannel().sendMessage("正在添加订阅...").queue(m -> {
             CommandResultVO commandResult = restTemplate.getForObject(URL.toString(), CommandResultVO.class);
             if (commandResult != null && commandResult.getCode() == 200) {
 
                 m.editMessage("订阅成功").queue(msg -> {
-                    displayMaskMenu(event, builder, channelId, usrId, commandResult.getData().toString(), discordIds, discordNames);
+                    displayMaskMenu(event, builder, channelId, finalUsrId, commandResult.getData().toString(), discordIds, discordNames);
                 });
             } else if (commandResult != null) {
                 m.editMessage("订阅失败 原因：" + Optional.ofNullable(commandResult.getMsg()).orElse("") + " " + Optional.ofNullable(commandResult.getData()).orElse("")).queue();
