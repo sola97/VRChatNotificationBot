@@ -81,5 +81,10 @@ public class PingServiceImpl implements PingService {
         return pingMapper.countByExample(example) > 0;
     }
 
-
+    @Override
+    public List<Ping> selAllPingNotInUsrIdList(List<String> usrIds) {
+        PingExample example = new PingExample();
+        example.createCriteria().andUsrIdNotIn(usrIds).andDisabledEqualTo(false);
+        return pingMapper.selectByExample(example);
+    }
 }

@@ -25,4 +25,6 @@ public interface PingService {
     Ping selPingByPrimaryKey(Ping ping);
 
     Boolean existsPing(Ping ping);
+
+    List<Ping> selAllPingNotInUsrIdList(List<String> usrIds);
 }

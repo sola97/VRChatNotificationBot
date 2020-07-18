@@ -309,12 +309,20 @@ public class CommandServiceImpl implements CommandService {
                     .append(locationMap.get("username")).append(" ").append(locationMap.get("status")).append(" ").append(num).append("/").append(world.getCapacity()).toString();
             embedBuilder.addField(description, value, true);
         }
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        simpleDateFormat.setTimeZone(TimeZone.getTimeZone(timezone));
+        String lastLogin = "";
+        if (user.getLast_login() != null) {
+            try {
+                SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                simpleDateFormat.setTimeZone(TimeZone.getTimeZone(timezone));
+                lastLogin = "\n上次登录：" + simpleDateFormat.format(user.getLast_login());
+            } catch (Exception e) {
+                logger.error(e.getMessage());
+            }
+        }
+
         embedBuilder.addField("账号信息",
                 "username：" + user.getUsername() + "\n"
-                        + "用户ID　：" + user.getId() + "\n"
-                        + "上次登录：" + simpleDateFormat.format(user.getLast_login())
+                        + "用户ID　：" + user.getId() + lastLogin
                 , false);
         return message;
     }

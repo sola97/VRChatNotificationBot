@@ -25,7 +25,11 @@ public interface CacheService {
 
     void setUserOnline(UserOnline user);
 
+    void setNonFriendUser(User user);
+
     UserOnline getOnlineUser(String id);
+
+    User getNonFriendUser(String id);
 
     void setUserOffline(String id);
 }

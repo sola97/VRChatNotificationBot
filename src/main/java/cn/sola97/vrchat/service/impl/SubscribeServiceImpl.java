@@ -96,5 +96,12 @@ public class SubscribeServiceImpl implements SubscribeService {
         return subscribeMapper.selectByExample(example);
     }
 
+    @Override
+    public List<Subscribe> selAllSubscribesNotInUsrIdList(List<String> usrIds) {
+        SubscribeExample example = new SubscribeExample();
+        example.createCriteria().andUsrIdNotIn(usrIds).andDisabledEqualTo(false);
+        return subscribeMapper.selectByExample(example);
+    }
+
 
 }

@@ -3,10 +3,8 @@ package cn.sola97.vrchat.service.impl;
 import cn.sola97.vrchat.aop.proxy.JDAProxy;
 import cn.sola97.vrchat.aop.proxy.WebSocketConnectionManagerProxy;
 import cn.sola97.vrchat.controller.EventHandlerMapping;
-import cn.sola97.vrchat.entity.Channel;
-import cn.sola97.vrchat.entity.User;
-import cn.sola97.vrchat.entity.UserOnline;
-import cn.sola97.vrchat.entity.World;
+import cn.sola97.vrchat.entity.*;
+import cn.sola97.vrchat.enums.EventTypeEnums;
 import cn.sola97.vrchat.enums.ReleaseStatusEnums;
 import cn.sola97.vrchat.pojo.VRCEventDTO;
 import cn.sola97.vrchat.pojo.impl.WsFriendContent;
@@ -20,12 +18,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Component
 public class ScheduledServiceImpl implements ScheduledService {
@@ -33,6 +31,7 @@ public class ScheduledServiceImpl implements ScheduledService {
     String ownerId;
     private final VRChatApiService vrchatApiServiceImpl;
     private final MessageService messageServiceImpl;
+    private final PingServiceImpl pingServiceImpl;
     private static final Logger logger = LoggerFactory.getLogger(ScheduledServiceImpl.class);
     private final ScheduledExecutorService scheduledExecutorService;
     private final WebSocketConnectionManagerProxy webSocketConnectionManager;
@@ -41,12 +40,23 @@ public class ScheduledServiceImpl implements ScheduledService {
     private final EventHandlerMapping eventHandlerMapping;
     private final JDAProxy jda;
     private final ChannelService channelServiceImpl;
+    private final SubscribeService subscribeServiceImpl;
     private Long checkOnlinePeriod;
     private Long checkChannelPeriod;
+    private Long checkNonFriendPeriod;
 
-    public ScheduledServiceImpl(JDAProxy jda, ScheduledExecutorService scheduledExecutorService, WebSocketConnectionManagerProxy webSocketConnectionManagerProxy, VRChatApiService vrchatApiServiceImpl, MessageService messageServiceImpl, CacheService cacheServiceImpl, Executor asyncExecutor, EventHandlerMapping eventHandlerMapping, ChannelService channelServiceImpl,
+    public ScheduledServiceImpl(JDAProxy jda, ScheduledExecutorService scheduledExecutorService,
+                                WebSocketConnectionManagerProxy webSocketConnectionManagerProxy,
+                                VRChatApiService vrchatApiServiceImpl, MessageService messageServiceImpl,
+                                PingServiceImpl pingServiceImpl, CacheService cacheServiceImpl,
+                                Executor asyncExecutor, EventHandlerMapping eventHandlerMapping,
+                                ChannelService channelServiceImpl,
+                                SubscribeService subscribeServiceImpl,
                                 @Value("${scheduled.checkOnline.period}") final Long checkOnlinePeriod,
-                                @Value("${scheduled.checkChannel.period}") final Long checkChannelPeriod) {
+                                @Value("${scheduled.checkChannel.period}") final Long checkChannelPeriod,
+                                @Value("${scheduled.checkNonfriend.period}") final Long checkNonFriendPeriod) {
+        this.pingServiceImpl = pingServiceImpl;
+        this.subscribeServiceImpl = subscribeServiceImpl;
         this.checkOnlinePeriod = checkOnlinePeriod;
         this.checkChannelPeriod = checkChannelPeriod;
         this.jda = jda;
@@ -58,6 +68,7 @@ public class ScheduledServiceImpl implements ScheduledService {
         this.asyncExecutor = asyncExecutor;
         this.eventHandlerMapping = eventHandlerMapping;
         this.channelServiceImpl = channelServiceImpl;
+        this.checkNonFriendPeriod = checkNonFriendPeriod;
 
         botWatchdog();
         websocketWatchdog();
@@ -65,6 +76,8 @@ public class ScheduledServiceImpl implements ScheduledService {
         checkOnlineUsers();
         updatePresence();
         checkChannelsTask();
+        checkNonFriendAvatar();
+
         if (!scheduledExecutorService.isShutdown()) logger.info("ScheduledService running ");
 
     }
@@ -213,5 +226,57 @@ public class ScheduledServiceImpl implements ScheduledService {
         } else {
             logger.info("检查Channel是否有效时遇到问题，Bot " + this.jda.getStatus());
         }
+    }
+
+    private void checkNonFriendAvatar() {
+        scheduledExecutorService.scheduleAtFixedRate(() -> {
+            logger.debug("checking non-friend avatar...");
+            List<UserOnline> allFriends = new ArrayList<>();
+            allFriends.addAll(vrchatApiServiceImpl.getFriendsWithCache(true));
+            allFriends.addAll(vrchatApiServiceImpl.getFriendsWithCache(false));
+            List<String> friendUserIds = allFriends.stream().map(UserOnline::getId).collect(Collectors.toList());
+            friendUserIds.add("*");
+            logger.debug("获取到好友总数：{}", friendUserIds.size());
+            List<Subscribe> subscribes = subscribeServiceImpl.selAllSubscribesNotInUsrIdList(friendUserIds);
+
+            List<Ping> pings = pingServiceImpl.selAllPingNotInUsrIdList(friendUserIds);
+            logger.debug("获取到非好友subscribes记录：{}", subscribes.size());
+            logger.debug("获取到非好友pings记录：{}", pings.size());
+            Map<String, String> usrIds = new HashMap<>();
+            subscribes.stream()
+                    .filter(subscribe -> (subscribe.getMask() & EventTypeEnums.UPDATE.getMask()) > 0)
+                    .forEach(subscribe -> usrIds.put(subscribe.getUsrId(), subscribe.getDisplayName()));
+            pings.stream()
+                    .filter(ping -> (ping.getMask() & EventTypeEnums.UPDATE.getMask()) > 0)
+                    .forEach(ping -> {
+                        if (!usrIds.containsKey(ping.getUsrId())) {
+                            usrIds.put(ping.getUsrId(), "");
+                        }
+                    });
+            logger.debug("获取到非好友订阅总数：{}", usrIds.size());
+            usrIds.forEach((usrId, displayName) -> {
+                logger.debug("正在检查用户{}  ---  ID:{}", displayName, usrId);
+                CompletableFuture.supplyAsync(() -> {
+                    User nonFriendUser = vrchatApiServiceImpl.getUserById(usrId, false);
+                    User cachedUser = cacheServiceImpl.getNonFriendUser(usrId);
+                    logger.debug(cachedUser.toString());
+                    cacheServiceImpl.setNonFriendUser(nonFriendUser);
+                    if (!cachedUser.getCurrentAvatarImageUrl().equals(nonFriendUser.getCurrentAvatarImageUrl()) ||
+                            !cachedUser.getCurrentAvatarThumbnailImageUrl().equals(nonFriendUser.getCurrentAvatarThumbnailImageUrl())) {
+                        VRCEventDTO<WsFriendContent> event = VRCEventDTOFactory.createUpdateEvent(nonFriendUser, new World());
+                        logger.debug("非好友：{}更换了角色", displayName);
+                        eventHandlerMapping.friendAvatar(event);
+
+                    }
+                    if (nonFriendUser.getBio() != null && !nonFriendUser.getBio().equals(cachedUser.getBio())) {
+                        VRCEventDTO<WsFriendContent> event = VRCEventDTOFactory.createUpdateEvent(nonFriendUser, new World());
+                        logger.debug("非好友：{}更换了描述", displayName);
+                        eventHandlerMapping.friendDescription(event);
+                    }
+                    return usrId;
+                }, asyncExecutor);
+            });
+
+        }, 10, checkNonFriendPeriod, TimeUnit.SECONDS);
     }
 }

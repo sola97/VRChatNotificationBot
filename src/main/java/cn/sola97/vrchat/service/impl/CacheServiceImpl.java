@@ -31,8 +31,12 @@ public class CacheServiceImpl implements CacheService {
     int userExpire;
     @Value("${cache.online}")
     String onlineUserKey;
+    @Value("${cache.nonFriend}")
+    String nonFriendUserKey;
     @Value("${cache.online.expire}")
     int onlineExpire;
+    @Value("${cache.nonFriend.expire}")
+    int nonFriendExpire;
     @Override
     public Object get(String key) {
         return redisTemplate.opsForValue().get(key);
@@ -91,9 +95,21 @@ public class CacheServiceImpl implements CacheService {
     }
 
     @Override
+    public void setNonFriendUser(User user) {
+        set(nonFriendUserKey + user.getId(), user, nonFriendExpire);
+    }
+
+    @Override
     public UserOnline getOnlineUser(String id) {
         Object user = get(onlineUserKey + id);
         if (user != null) return (UserOnline) user;
+        return null;
+    }
+
+    @Override
+    public User getNonFriendUser(String id) {
+        Object user = get(nonFriendUserKey + id);
+        if (user != null) return (User) user;
         return null;
     }
 
