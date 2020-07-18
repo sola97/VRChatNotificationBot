@@ -16,10 +16,11 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.text.SimpleDateFormat;
-import java.time.Instant;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TimeZone;
 import java.util.stream.Collectors;
 
 @Component
@@ -28,9 +29,16 @@ import java.util.stream.Collectors;
 public class FriendActionAspect {
     private Logger logger = LoggerFactory.getLogger(FriendActionAspect.class);
 
+    @Value("${timezone}")
+    String timezone;
     @Value("${cache.online.expire}")
     long expirePeriod;
 
+    private SimpleDateFormat getSimpleDateFormat() {
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        simpleDateFormat.setTimeZone(TimeZone.getTimeZone(timezone));
+        return simpleDateFormat;
+    }
     @Pointcut("execution(* cn.sola97.vrchat.controller.EventHandlerMapping.*Update(..))")
     public void friendUpdate() {
     }
@@ -98,7 +106,7 @@ public class FriendActionAspect {
                 String num = lists.isEmpty() ? "?" : lists.get(0).get(1).toString();
                 String value = new StringBuffer()
                         .append(world.getName()).append(":").append(locationMap.get("instanceId")).append("\n")
-                        .append(locationMap.get("username")).append(locationMap.get("status")).append(" ").append(num).append("/").append(world.getCapacity()).toString();
+                        .append(locationMap.get("username")).append(" ").append(locationMap.get("status")).append(" ").append(num).append("/").append(world.getCapacity()).toString();
 
                 embedBuilder.addField(description, value, true);
             }
@@ -134,7 +142,7 @@ public class FriendActionAspect {
             EmbedBuilder embedBuilder = message.getEmbedBuilder();
             embedBuilder.addField(description, event.getContent().getWorld().getName(), true);
             if (event.isCreatedByFactory()) {
-                embedBuilder.setTimestamp(Instant.now().plusSeconds(-1 * expirePeriod));
+                embedBuilder.setTimestamp(ZonedDateTime.now(TimeZone.getTimeZone(timezone).toZoneId()).plusSeconds(-1 * expirePeriod));
             }
         }
 
@@ -150,7 +158,8 @@ public class FriendActionAspect {
         for (MessageDTO message : messages) {
             EmbedBuilder embedBuilder = message.getEmbedBuilder();
             embedBuilder.setDescription(description);
-            embedBuilder.addField("上次登录", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(event.getContent().getUser().getLast_login()), true);
+
+            embedBuilder.addField("上次登录", getSimpleDateFormat().format(event.getContent().getUser().getLast_login()), true);
         }
         return proceed;
     }
@@ -164,7 +173,7 @@ public class FriendActionAspect {
         for (MessageDTO message : messages) {
             EmbedBuilder embedBuilder = message.getEmbedBuilder();
             embedBuilder.setDescription(description);
-            embedBuilder.addField("时间", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(event.getContent().getCreated_at()), true);
+            embedBuilder.addField("时间", getSimpleDateFormat().format(event.getContent().getCreated_at()), true);
         }
         return proceed;
     }
@@ -178,7 +187,7 @@ public class FriendActionAspect {
         for (MessageDTO message : messages) {
             EmbedBuilder embedBuilder = message.getEmbedBuilder();
             embedBuilder.setDescription(description);
-            embedBuilder.addField("时间", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(event.getContent().getCreated_at()), true);
+            embedBuilder.addField("时间", getSimpleDateFormat().format(event.getContent().getCreated_at()), true);
         }
         return proceed;
     }
@@ -193,7 +202,7 @@ public class FriendActionAspect {
         for (MessageDTO message : messages) {
             EmbedBuilder embedBuilder = message.getEmbedBuilder();
             embedBuilder.setDescription(description);
-            embedBuilder.addField("时间", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(event.getContent().getCreated_at()), true);
+            embedBuilder.addField("时间", getSimpleDateFormat().format(event.getContent().getCreated_at()), true);
         }
         return proceed;
     }

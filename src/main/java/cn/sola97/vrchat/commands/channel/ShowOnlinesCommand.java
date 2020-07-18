@@ -2,6 +2,7 @@ package cn.sola97.vrchat.commands.channel;
 
 import cn.sola97.vrchat.commands.ChannelCommand;
 import cn.sola97.vrchat.entity.User;
+import cn.sola97.vrchat.enums.TrustCorlorEnums;
 import cn.sola97.vrchat.pojo.CommandResultVO;
 import cn.sola97.vrchat.utils.AlignUtil;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -56,9 +57,9 @@ public class ShowOnlinesCommand extends ChannelCommand {
                         String emoji = "⚪️";
                         if (status.equals("join me")) emoji = "🔵";
                         else if (status.equals("busy")) emoji = "🔴";
-                        else if (status.equals("ask me")) emoji = "🟠";
+                        else if (status.equals("ask me")) emoji = "\uD83D\uDFE0";
                         else if (status.equals("active")) emoji = "🟢";
-                        line.add(emoji + "　" + user.getDisplayName());
+                        line.add(emoji + "　" + TrustCorlorEnums.getEmojiByTags(user.getTags()) + "　" + user.getDisplayName());
                         line.add("　　　" + "\uD83C\uDFF7" + "　" + user.getStatusDescription());
                         alignUtil.addLine(line);
                     }

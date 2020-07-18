@@ -18,7 +18,7 @@ public interface VRChatApiService {
 
     List<Moderation> getPlayerModerations();
 
-    List<Moderation> getPlayerModerated();
+    List<User> searchUser(String name, int num, int offset);
 
     Integer getVisits();
 

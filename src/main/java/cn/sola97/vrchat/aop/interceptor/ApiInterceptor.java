@@ -27,10 +27,10 @@ public class ApiInterceptor implements ClientHttpRequestInterceptor {
     @Override
     public ClientHttpResponse intercept(HttpRequest request, @NotNull byte[] body, ClientHttpRequestExecution execution) throws IOException {
         long start = System.currentTimeMillis();
-        URI uri = UriComponentsBuilder.fromUri(request.getURI()).queryParam("apiKey", "JlE5Jldo5Jibnk5O5hTx6XVqsJu4WJ26").build().toUri();
+        URI uri = UriComponentsBuilder.fromUri(request.getURI()).queryParam("apiKey", "JlE5Jldo5Jibnk5O5hTx6XVqsJu4WJ26").build(true).toUri();
         HttpHeaders headers = request.getHeaders();
         headers.add(HttpHeaders.COOKIE,cookieServiceImpl.getCookie());
-        logger.info("VRChatAPI - " + request.getMethod() + " " + request.getURI());
+        logger.info("VRChatAPI - " + request.getMethod() + " " + uri.toString());
         return execution.execute(new MyHttpRequestWrapper(request, uri, headers), body);
     }
 

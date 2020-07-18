@@ -34,6 +34,8 @@ public interface CommandService {
 
     CommandResultVO getOnlineUsers(String channelId);
 
+    CommandResultVO searchUsers(String channelId, String searchKey, String callback);
+
     CommandResultVO reconnectWebsocket();
 
     CommandResultVO restartBot();
@@ -41,4 +43,6 @@ public interface CommandService {
     CommandResultVO getWebsocketStatus();
 
     CommandResultVO getBotStatus();
+
+    CommandResultVO showUserById(String userId, String channelId1, String callback);
 }

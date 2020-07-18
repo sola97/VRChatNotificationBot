@@ -4,6 +4,7 @@ import cn.sola97.vrchat.aop.proxy.JDAProxy;
 import cn.sola97.vrchat.aop.proxy.WebSocketConnectionManagerProxy;
 import cn.sola97.vrchat.entity.*;
 import cn.sola97.vrchat.enums.EventTypeEnums;
+import cn.sola97.vrchat.enums.TrustCorlorEnums;
 import cn.sola97.vrchat.pojo.ChannelConfigVO;
 import cn.sola97.vrchat.pojo.CommandResultVO;
 import cn.sola97.vrchat.pojo.MessageDTO;
@@ -21,6 +22,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -48,6 +50,8 @@ public class CommandServiceImpl implements CommandService {
     @Autowired
     @Qualifier("asyncExecutor")
     Executor asyncExecutor;
+    @Value("${timezone}")
+    String timezone;
     @Value("${discord.channel.default-mask}")
     String defaultMask;
 
@@ -305,6 +309,13 @@ public class CommandServiceImpl implements CommandService {
                     .append(locationMap.get("username")).append(" ").append(locationMap.get("status")).append(" ").append(num).append("/").append(world.getCapacity()).toString();
             embedBuilder.addField(description, value, true);
         }
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        simpleDateFormat.setTimeZone(TimeZone.getTimeZone(timezone));
+        embedBuilder.addField("账号信息",
+                "username：" + user.getUsername() + "\n"
+                        + "用户ID　：" + user.getId() + "\n"
+                        + "上次登录：" + simpleDateFormat.format(user.getLast_login())
+                , false);
         return message;
     }
 
@@ -344,6 +355,34 @@ public class CommandServiceImpl implements CommandService {
     }
 
     @Override
+    public CommandResultVO searchUsers(String channelId, String searchKey, String callback) {
+        CompletableFuture.supplyAsync(() -> vrchatApiServiceImpl.searchUser(searchKey, 50, 0), asyncExecutor)
+                .thenApply(users -> {
+                    List<User> matchUsers = users.stream()
+                            .filter(user -> user.getDisplayName().matches("(?i:[\\s\\S]*" + searchKey + "[\\s\\S]*)"))
+                            .collect(Collectors.toList());
+                    MessageDTO messageDTO = new MessageDTO();
+                    messageDTO.setType(MessageDTO.typeEnums.EDIT_MESSAGE);
+                    messageDTO.setCallback(callback);
+                    EmbedBuilder embedBuilder = new EmbedBuilder();
+                    messageDTO.setChannelId(channelId);
+                    if (!matchUsers.isEmpty()) {
+                        messageDTO.setContent("找到以下" + users.size() + "个用户");
+                        matchUsers.forEach(user -> embedBuilder.addField(TrustCorlorEnums.getEmojiByTags(user.getTags()) + "　" + user.getDisplayName(), user.getId(), false));
+                        messageDTO.setEmbedBuilder(embedBuilder);
+                        messageServiceImpl.enqueueMessages(Collections.singletonList(messageDTO));
+                    } else {
+                        messageDTO.setContent("没有找到匹配用户，搜索结果如下：");
+                        users.forEach(user -> embedBuilder.addField(TrustCorlorEnums.getEmojiByTags(user.getTags()) + " " + user.getDisplayName(), user.getId(), false));
+                        messageDTO.setEmbedBuilder(embedBuilder);
+                        messageServiceImpl.enqueueMessages(Collections.singletonList(messageDTO));
+                    }
+                    return null;
+                });
+        return new CommandResultVO().setCode(200).setMsg("正在搜索...");
+    }
+
+    @Override
     public CommandResultVO reconnectWebsocket() {
         webSocketConnectionManagerProxy.rebuild();
         return new CommandResultVO().setCode(200).setMsg("正在重新连接VRChat Websocket");
@@ -366,5 +405,13 @@ public class CommandServiceImpl implements CommandService {
     @Override
     public CommandResultVO getBotStatus() {
         return new CommandResultVO().setCode(200).setMsg("Discord Bot is " + jdaProxy.getStatus().name());
+    }
+
+    @Override
+    public CommandResultVO showUserById(String userId, String channelId, String callback) {
+        CompletableFuture.supplyAsync(() -> showUser(userId, channelId, callback), asyncExecutor)
+                .thenAccept(messageDTO ->
+                        messageServiceImpl.enqueueMessages(Collections.singletonList(messageDTO)));
+        return new CommandResultVO().setCode(200).setMsg("正在查询...");
     }
 }

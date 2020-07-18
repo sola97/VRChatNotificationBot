@@ -39,20 +39,21 @@ public class BotConfig {
 
     @Bean
     public JDABuilder jdaBuilder(EventWaiter eventWaiter, CommandClient client, BotListenerAdapter botListenerAdapter) {
-            Proxy proxy = HttpUtil.getProxy(proxyString);
-            JDABuilder jdaBuilder = new JDABuilder(AccountType.BOT)
-                    .setToken(token)
-                    .setActivity(Activity.playing("loading..."))
-                    .addEventListeners(eventWaiter, client, botListenerAdapter)
-                    .setAutoReconnect(true)
-                    .setMaxReconnectDelay(32);
-            if(proxy!=null){
-                jdaBuilder.setHttpClientBuilder(new OkHttpClient.Builder().proxy(proxy));
-            }
+        Proxy proxy = HttpUtil.getProxy(proxyString);
+        JDABuilder jdaBuilder = new JDABuilder(AccountType.BOT)
+                .setToken(token)
+                .setActivity(Activity.playing("loading..."))
+                .addEventListeners(eventWaiter, client, botListenerAdapter)
+                .setAutoReconnect(true)
+                .setMaxReconnectDelay(32);
+        if (proxy != null) {
+            jdaBuilder.setHttpClientBuilder(new OkHttpClient.Builder().proxy(proxy));
+        }
         return jdaBuilder;
     }
+
     @Bean
-    public CommandClient client(EventWaiter eventWaiter , RestTemplate cmdRestTemplate){
+    public CommandClient client(EventWaiter eventWaiter, RestTemplate cmdRestTemplate) {
         CommandClientBuilder clientBuilder = new CommandClientBuilder();
         clientBuilder.useDefaultGame()
                 .setOwnerId(ownerId)
@@ -63,6 +64,7 @@ public class BotConfig {
                         new ShowConfigCommand(eventWaiter, cmdRestTemplate),
                         new ShowUserCommand(eventWaiter, cmdRestTemplate),
                         new ShowOnlinesCommand(eventWaiter, cmdRestTemplate),
+                        new SearchUserCommand(eventWaiter, cmdRestTemplate),
                         new ShowIPCommand(),
                         new RestartCommand(cmdRestTemplate)
                 );
@@ -70,7 +72,7 @@ public class BotConfig {
     }
 
     @Bean
-    public EventWaiter waiter(){
+    public EventWaiter waiter() {
         return new EventWaiter();
     }
 }

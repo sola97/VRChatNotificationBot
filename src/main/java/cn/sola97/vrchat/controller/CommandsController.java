@@ -36,8 +36,9 @@ public class CommandsController {
     String defaultSubMask;
     @Value("${discord.channel.default-ping-mask}")
     String defaultPingMask;
+
     @RequestMapping("/")
-    public CommandResultVO welcome(){
+    public CommandResultVO welcome() {
         return new CommandResultVO().setCode(200).setMsg("It works!");
     }
 
@@ -90,10 +91,10 @@ public class CommandsController {
 
 
     @RequestMapping("/rest/show/config/{channelId}")
-    public CommandResultVO showChannelConfig(@PathVariable String channelId){
+    public CommandResultVO showChannelConfig(@PathVariable String channelId) {
         try {
             return commandServiceImpl.showConfigByChannelId(channelId);
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
             return new CommandResultVO().setCode(500).setMsg(e.getMessage());
         }
@@ -129,6 +130,26 @@ public class CommandsController {
         }
     }
 
+    @RequestMapping("/rest/show/userid/{channelId}/{userId}")
+    public CommandResultVO showUserById(@PathVariable String channelId, @PathVariable String userId, @RequestParam String callback) {
+        try {
+            return commandServiceImpl.showUserById(userId, channelId, callback);
+        } catch (Exception e) {
+            logger.error("show user failed", e);
+            return new CommandResultVO().setCode(500).setMsg(e.getMessage());
+        }
+    }
+
+    @RequestMapping("/rest/search/user/{channelId}/{search}")
+    public CommandResultVO searchUser(@PathVariable String channelId, @PathVariable String search, @RequestParam String callback) {
+        try {
+            String decoded = URLDecoder.decode(search, "UTF-8");
+            return commandServiceImpl.searchUsers(channelId, decoded, callback);
+        } catch (Exception e) {
+            logger.error("search user failed", e);
+            return new CommandResultVO().setCode(500).setMsg(e.getMessage());
+        }
+    }
 
     @RequestMapping("/rest/query/ping/mask/{channelId}/{usrId}")
     public CommandResultVO getPingMask(@PathVariable String channelId, @PathVariable String usrId, @RequestParam String discordId) {

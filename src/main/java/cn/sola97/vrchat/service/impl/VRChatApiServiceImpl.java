@@ -14,6 +14,7 @@ import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.annotation.Resource;
 import java.util.*;
@@ -175,11 +176,16 @@ public class VRChatApiServiceImpl implements VRChatApiService {
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 0))
     @Override
-    public List<Moderation> getPlayerModerated() {
-        String uri = "/auth/user/playermoderated";
-        Moderation[] moderations = apiRestTemplate.getForObject(uri, Moderation[].class);
-        assert moderations != null;
-        return Arrays.asList(moderations);
+    public List<User> searchUser(String name, int num, int offset) {
+        String uri = UriComponentsBuilder.fromUriString("/users")
+                .queryParam("search", name)
+                .queryParam("n", num)
+                .queryParam("offset", offset).build(false).toUriString();
+        User[] users = apiRestTemplate.getForObject(uri, User[].class);
+        if (users != null && users.length > 0) {
+            return Arrays.asList(users);
+        }
+        return new ArrayList<>();
     }
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 0))

@@ -28,11 +28,13 @@ VRChat好友上线提醒DiscordBot
 - `!manage` - 显示一个菜单(上限10条，未完善)，用于删除已订阅的好友
 - `!showconfig` - 显示当前Channel已订阅好友的配置及mask数值定义
 - `!showuser` - 显示好友当前状态  
-  参数：`[username]`    
+  参数：`[username|user_id]`    
   举例：假设好友名为 Lucy a1b2
   - 用法一：`!showuser lucy`                  显示好友 Lucy a1b2 的在线状态
   - 用法二：`!showuser`                       显示该Channel的所有已订阅用户的在线状态
+  - 用法三：`!showuser usr_id`                显示该指定ID的用户信息
 - `!showonline` - 显示在线好友
+- `!search [username]` - 搜索用户
 - `!showip` - 显示当前服务器的IP地址
 - `!restart` - 重启Bot
 - `!help` - 命令使用说明
