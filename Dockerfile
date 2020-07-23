@@ -10,5 +10,5 @@ RUN  apk update && \
 FROM openjdk:8-jdk-alpine
 WORKDIR /
 COPY --from=builder /app.jar app.jar
-ENTRYPOINT ["java","-Djava.security.egd=file:/dev/./urandom","-jar","/app.jar"]
+ENTRYPOINT ["java","-Djava.security.egd=file:/dev/./urandom","-jar","/app.jar","-Xmx500m","-Xms300m","-XX:+UseG1GC"]
 
