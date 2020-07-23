@@ -150,7 +150,7 @@ public class CommandServiceImpl implements CommandService {
                         return null;
                     }).join();
                     return futures;
-                }).thenApply((futures) -> {
+                }).thenAccept((futures) -> {
             Map<Boolean, List<CompletableFuture<MessageDTO>>> result = futures.stream().collect(Collectors.partitioningBy(CompletableFuture::isCompletedExceptionally));
             ArrayList<MessageDTO> messages = new ArrayList<>();
             for (CompletableFuture<MessageDTO> completableFuture : result.get(Boolean.FALSE)) {
@@ -168,7 +168,6 @@ public class CommandServiceImpl implements CommandService {
             messageDTO.setChannelId(channelId);
             messages.add(0, messageDTO);
             messageServiceImpl.enqueueMessages(messages);
-            return futures;
         });
         return new CommandResultVO()
                 .setCode(200).setMsg("正在查询...");
@@ -188,7 +187,7 @@ public class CommandServiceImpl implements CommandService {
                     }).join();
                     return futures;
                 })
-                .thenApply((futures) -> {
+                .thenAccept((futures) -> {
                     Map<Boolean, List<CompletableFuture<MessageDTO>>> result = futures.stream().collect(Collectors.partitioningBy(CompletableFuture::isCompletedExceptionally));
                     ArrayList<MessageDTO> messages = new ArrayList<>();
                     for (CompletableFuture<MessageDTO> completableFuture : result.get(Boolean.FALSE)) {
@@ -206,7 +205,6 @@ public class CommandServiceImpl implements CommandService {
                     messageDTO.setChannelId(channelId);
                     messages.add(0, messageDTO);
                     messageServiceImpl.enqueueMessages(messages);
-                    return futures;
                 });
         return new CommandResultVO().setCode(200).setMsg("正在查询...");
     }
@@ -365,7 +363,7 @@ public class CommandServiceImpl implements CommandService {
     @Override
     public CommandResultVO searchUsers(String channelId, String searchKey, String callback) {
         CompletableFuture.supplyAsync(() -> vrchatApiServiceImpl.searchUser(searchKey, 50, 0), asyncExecutor)
-                .thenApply(users -> {
+                .thenAccept(users -> {
                     List<User> matchUsers = users.stream()
                             .filter(user -> user.getDisplayName().matches("(?i:[\\s\\S]*" + searchKey + "[\\s\\S]*)"))
                             .collect(Collectors.toList());
@@ -385,7 +383,6 @@ public class CommandServiceImpl implements CommandService {
                         messageDTO.setEmbedBuilder(embedBuilder);
                         messageServiceImpl.enqueueMessages(Collections.singletonList(messageDTO));
                     }
-                    return null;
                 });
         return new CommandResultVO().setCode(200).setMsg("正在搜索...");
     }

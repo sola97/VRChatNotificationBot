@@ -141,6 +141,7 @@ public class ScheduledServiceImpl implements ScheduledService {
             }
         }, 10, 10, TimeUnit.SECONDS);
     }
+
     private void updatePresence() {
         scheduledExecutorService.scheduleAtFixedRate(() -> {
             if (webSocketConnectionManager.isConnected()) {
@@ -155,7 +156,7 @@ public class ScheduledServiceImpl implements ScheduledService {
         scheduledExecutorService.scheduleAtFixedRate(() -> {
             logger.debug("checking online users...");
             CompletableFuture.supplyAsync(() -> vrchatApiServiceImpl.getFriends(false), asyncExecutor)
-                    .thenApply(onlineFriends -> {
+                    .thenAccept(onlineFriends -> {
                         for (UserOnline onlineUser : onlineFriends) {
                             UserOnline cachedUser = cacheServiceImpl.getOnlineUser(onlineUser.getId());
                             cacheServiceImpl.setUserOnline(onlineUser);
@@ -166,7 +167,7 @@ public class ScheduledServiceImpl implements ScheduledService {
                                 VRCEventDTO<WsFriendContent> event = VRCEventDTOFactory.createOnlineEvent((User) onlineUser, world);
 
                                 eventHandlerMapping.friendOnline(event);
-
+                                return;
                             }
                             if (!cachedUser.getLocation().equals(cachedUser.getLocation())) {
                                 World world = vrchatApiServiceImpl.getWorldById(worldId, true);
@@ -190,7 +191,6 @@ public class ScheduledServiceImpl implements ScheduledService {
                                 eventHandlerMapping.friendDescription(event);
                             }
                         }
-                        return onlineFriends;
                     });
         }, 0, checkOnlinePeriod, TimeUnit.SECONDS);
     }
@@ -205,22 +205,25 @@ public class ScheduledServiceImpl implements ScheduledService {
             logger.info("正在检查Channel是否有效");
             List<Channel> channels = channelServiceImpl.selAllChannel();
             for (Channel channel : channels) {
-                CompletableFuture.supplyAsync(() -> {
-                    TextChannel textChannel = this.jda.getJda().getTextChannelById(channel.getChannelId());
-                    //如果频道不存在，且没有被disable
-                    if (textChannel == null && !channel.getDisabled()) {
-                        //disable
-                        channel.setDisabled(true);
-                        channel.setUpdatedAt(new Date());
-                        logger.info("现在无效的Channel:" + channel.getChannelName() + " id:" + channel.getChannelId());
-                        //update
-                        channelServiceImpl.updChannel(channel);
-                    } else if (textChannel != null && channel.getDisabled()) {
-                        channel.setDisabled(false);
-                        channel.setUpdatedAt(new Date());
-                        logger.info("现在有效的Channel: " + channel.getChannelName() + " id:" + channel.getChannelId());
+                CompletableFuture.runAsync(() -> {
+                    try {
+                        TextChannel textChannel = this.jda.getJda().getTextChannelById(channel.getChannelId());
+                        //如果频道不存在，且没有被disable
+                        if (textChannel == null && !channel.getDisabled()) {
+                            //disable
+                            channel.setDisabled(true);
+                            channel.setUpdatedAt(new Date());
+                            logger.info("现在无效的Channel:" + channel.getChannelName() + " id:" + channel.getChannelId());
+                            //update
+                            channelServiceImpl.updChannel(channel);
+                        } else if (textChannel != null && channel.getDisabled()) {
+                            channel.setDisabled(false);
+                            channel.setUpdatedAt(new Date());
+                            logger.info("现在有效的Channel: " + channel.getChannelName() + " id:" + channel.getChannelId());
+                        }
+                    } catch (Exception e) {
+                        logger.error("检查Channel：" + channel.getChannelName() + "  ----  " + channel.getChannelId() + "出错 \n", e.getMessage());
                     }
-                    return null;
                 }, asyncExecutor);
             }
         } else {
@@ -230,7 +233,7 @@ public class ScheduledServiceImpl implements ScheduledService {
 
     private void checkNonFriendAvatar() {
         scheduledExecutorService.scheduleAtFixedRate(() -> {
-            logger.debug("checking non-friend avatar...");
+            logger.info("checking non-friend avatar...");
             List<UserOnline> allFriends = new ArrayList<>();
             allFriends.addAll(vrchatApiServiceImpl.getFriendsWithCache(true));
             allFriends.addAll(vrchatApiServiceImpl.getFriendsWithCache(false));
@@ -253,27 +256,36 @@ public class ScheduledServiceImpl implements ScheduledService {
                             usrIds.put(ping.getUsrId(), "");
                         }
                     });
-            logger.debug("获取到非好友订阅总数：{}", usrIds.size());
+            logger.info("获取到非好友订阅总数：{}", usrIds.size());
             usrIds.forEach((usrId, displayName) -> {
-                logger.debug("正在检查用户{}  ---  ID:{}", displayName, usrId);
-                CompletableFuture.supplyAsync(() -> {
-                    User nonFriendUser = vrchatApiServiceImpl.getUserById(usrId, false);
-                    User cachedUser = cacheServiceImpl.getNonFriendUser(usrId);
-                    logger.debug(cachedUser.toString());
-                    cacheServiceImpl.setNonFriendUser(nonFriendUser);
-                    if (!cachedUser.getCurrentAvatarImageUrl().equals(nonFriendUser.getCurrentAvatarImageUrl()) ||
-                            !cachedUser.getCurrentAvatarThumbnailImageUrl().equals(nonFriendUser.getCurrentAvatarThumbnailImageUrl())) {
-                        VRCEventDTO<WsFriendContent> event = VRCEventDTOFactory.createUpdateEvent(nonFriendUser, new World());
-                        logger.debug("非好友：{}更换了角色", displayName);
-                        eventHandlerMapping.friendAvatar(event);
-
+                CompletableFuture.runAsync(() -> {
+                    try {
+                        logger.info("正在检查用户{}  ---  ID:{}", displayName, usrId);
+                        User nonFriendUser = vrchatApiServiceImpl.getUserById(usrId, false);
+                        User cachedUser = cacheServiceImpl.getNonFriendUser(usrId);
+                        cacheServiceImpl.setNonFriendUser(nonFriendUser);
+                        if (cachedUser == null) {
+                            logger.info("用户当前没有缓存 {}  ---  ID:{}", displayName, usrId);
+                            return;
+                        }
+                        if (cachedUser.getId() == null) {
+                            logger.info("用户数据不存在 {}  ---  ID:{}", displayName, usrId);
+                            return;
+                        }
+                        if (!cachedUser.getCurrentAvatarImageUrl().equals(nonFriendUser.getCurrentAvatarImageUrl()) ||
+                                !cachedUser.getCurrentAvatarThumbnailImageUrl().equals(nonFriendUser.getCurrentAvatarThumbnailImageUrl())) {
+                            VRCEventDTO<WsFriendContent> event = VRCEventDTOFactory.createUpdateEvent(nonFriendUser, new World());
+                            logger.info("非好友：{}更换了角色", displayName);
+                            eventHandlerMapping.friendAvatar(event);
+                        }
+                        if (nonFriendUser.getBio() != null && !nonFriendUser.getBio().equals(cachedUser.getBio())) {
+                            VRCEventDTO<WsFriendContent> event = VRCEventDTOFactory.createUpdateEvent(nonFriendUser, new World());
+                            logger.info("非好友：{}更换了描述", displayName);
+                            eventHandlerMapping.friendDescription(event);
+                        }
+                    } catch (Exception e) {
+                        logger.error("检查用户：" + displayName + "出错 \n", e.getMessage());
                     }
-                    if (nonFriendUser.getBio() != null && !nonFriendUser.getBio().equals(cachedUser.getBio())) {
-                        VRCEventDTO<WsFriendContent> event = VRCEventDTOFactory.createUpdateEvent(nonFriendUser, new World());
-                        logger.debug("非好友：{}更换了描述", displayName);
-                        eventHandlerMapping.friendDescription(event);
-                    }
-                    return usrId;
                 }, asyncExecutor);
             });
 

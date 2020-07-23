@@ -110,7 +110,7 @@ public class CacheServiceImpl implements CacheService {
     public User getNonFriendUser(String id) {
         Object user = get(nonFriendUserKey + id);
         if (user != null) return (User) user;
-        return null;
+        return new User();
     }
 
     @Override
