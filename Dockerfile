@@ -1,11 +1,11 @@
-FROM alpine:3.10 as builder
-
+FROM maven:3.6.3-jdk-8 as builder
 LABEL maintainer="sola97 <my@sora.vip> "
-
-ENV JAR_FILE https://github.com/sola97/VRChatNotificationBot/releases/download/latest/vrchat-notification-bot.jar
-RUN  apk update && \
-    apk add --no-cache curl && \
-    curl -sSL ${JAR_FILE} > /app.jar
+WORKDIR /
+RUN git clone https://github.com/sola97/VRChatNotificationBot.git && \
+    cd VRChatNotificationBot && \
+    mvn --no-transfer-progress package && \
+    mv target/vrchat*.jar /app.jar && \
+    chmod +x /app.jar
 
 FROM openjdk:8-jdk-alpine
 WORKDIR /
