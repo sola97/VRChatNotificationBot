@@ -5,6 +5,7 @@ import cn.sola97.vrchat.pojo.MessageDTO;
 import cn.sola97.vrchat.pojo.VRCEventDTO;
 import cn.sola97.vrchat.pojo.impl.WsFriendContent;
 import cn.sola97.vrchat.pojo.impl.WsNotificationContent;
+import cn.sola97.vrchat.utils.WorldUtil;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -19,9 +20,7 @@ import java.text.SimpleDateFormat;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.TimeZone;
-import java.util.stream.Collectors;
 
 @Component
 @Aspect
@@ -96,20 +95,8 @@ public class FriendActionAspect {
             EmbedBuilder embedBuilder = message.getEmbedBuilder();
             Map<String, String> locationMap = message.getLocationMap();
             String instance = event.getContent().getInstance();
-            if (locationMap.get("instanceId") == null) {
-                if (world != null && world.getName() != null)
-                    embedBuilder.addField(description, world.getName(), true);
-                else
-                    embedBuilder.setDescription(description);
-            } else {
-                List<List> lists = world.getInstances().stream().filter(Objects::nonNull).filter(pair -> instance.equals(pair.get(0))).collect(Collectors.toList());
-                String num = lists.isEmpty() ? "?" : lists.get(0).get(1).toString();
-                String value = new StringBuffer()
-                        .append(world.getName()).append(":").append(locationMap.get("instanceId")).append("\n")
-                        .append(locationMap.get("username")).append(" ").append(locationMap.get("status")).append(" ").append(num).append("/").append(world.getCapacity()).toString();
-
-                embedBuilder.addField(description, value, true);
-            }
+            String value = WorldUtil.convertToString(world, locationMap, instance);
+            embedBuilder.addField(description, value, true);
         }
         return proceed;
     }

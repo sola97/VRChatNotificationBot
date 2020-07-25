@@ -16,7 +16,7 @@ public class CmdInterceptor implements ClientHttpRequestInterceptor {
 
     @Override
     public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
-        logger.info("Command - " + request.getMethod() + " " + request.getURI());
+        logger.debug("Command - " + request.getMethod() + " " + request.getURI());
         return execution.execute(request, body);
     }
 }

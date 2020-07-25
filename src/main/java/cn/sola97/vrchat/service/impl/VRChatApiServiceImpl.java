@@ -46,10 +46,8 @@ public class VRChatApiServiceImpl implements VRChatApiService {
     public List<UserOnline> getFriends(Boolean offline) {
         int total = 0;
         if (offline) {
-            logger.info("正在查询离线好友");
             total = vrchatApiServiceImpl.getCurrentUserDetails(true).getOfflineFriends().size();
         } else {
-            logger.info("正在查询在线好友");
             total = vrchatApiServiceImpl.getCurrentUserDetails(true).getOnlineFriends().size();
         }
         List<UserOnline> userList = new ArrayList<>();
@@ -66,7 +64,7 @@ public class VRChatApiServiceImpl implements VRChatApiService {
             offset += n;
         }
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).exceptionally(ex -> {
-            logger.info("error on getFriends:" + ex.getMessage());
+            logger.error("error on getFriends:" + ex.getMessage());
             return null;
         }).join();
 
@@ -77,7 +75,7 @@ public class VRChatApiServiceImpl implements VRChatApiService {
                 User[] users = completableFuture.get();
                 userList.addAll(Arrays.asList(users));
             } catch (Exception e) {
-                e.printStackTrace();
+                logger.error("CompletableFuture<User[]> completableFuture error", e);
             }
         }
         if (offline) {

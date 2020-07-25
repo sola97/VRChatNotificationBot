@@ -16,17 +16,24 @@ public class CmdErrorHandler implements ResponseErrorHandler {
 
     @Override
     public boolean hasError(ClientHttpResponse clientHttpResponse) throws IOException {
-        logger.debug("Command - Response StatusCode:" + clientHttpResponse.getStatusCode());
+        if (!clientHttpResponse.getStatusCode().is2xxSuccessful()) {
+            logger.error("Command - Response StatusCode:" + clientHttpResponse.getStatusCode());
+        } else {
+            logger.debug("Command - Response StatusCode:" + clientHttpResponse.getStatusCode());
+        }
         return !clientHttpResponse.getStatusCode().is2xxSuccessful();
     }
 
     @Override
     public void handleError(ClientHttpResponse clientHttpResponse) throws IOException {
-
+        logger.error(clientHttpResponse.getRawStatusCode() + clientHttpResponse.getRawStatusCode() + "");
+        logger.error(clientHttpResponse.getHeaders().toString());
+        logger.error(clientHttpResponse.getBody().toString());
     }
 
     @Override
     public void handleError(URI url, HttpMethod method, ClientHttpResponse response) throws IOException {
-        logger.debug("Reponse error:" + method.name() + "  " + url);
+        logger.error("Reponse error:" + method.name() + "  " + url);
+        handleError(response);
     }
 }

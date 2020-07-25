@@ -181,7 +181,7 @@ public class MessageServiceImpl implements MessageService {
                 messageBlockingQueue.put(message);
                 index++;
             } catch (Exception e) {
-                logger.error("put message error" + message.toString(), e);
+                logger.error("入队出错 message.toString():" + message.toString(), e);
             }
         }
         logger.debug("入队：" + index + " Queue size：" + messageBlockingQueue.size());

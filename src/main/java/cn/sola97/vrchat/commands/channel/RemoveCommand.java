@@ -9,6 +9,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jagrosh.jdautilities.command.CommandEvent;
 import com.jagrosh.jdautilities.commons.waiter.EventWaiter;
 import com.jagrosh.jdautilities.menu.OrderedMenu;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -17,6 +19,7 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 public class RemoveCommand extends ChannelCommand {
+    private static final Logger logger = LoggerFactory.getLogger(RemoveCommand.class);
     private final EventWaiter waiter;
     RestTemplate restTemplate;
 
@@ -65,6 +68,7 @@ public class RemoveCommand extends ChannelCommand {
             }
         }
         if (choiceText.size() == 0) {
+            logger.info("当前频道还没有订阅 Channel:{}", event.getChannel().getId());
             event.reply("当前频道还没有订阅");
             return;
         }
@@ -81,14 +85,16 @@ public class RemoveCommand extends ChannelCommand {
             String channelId = split[1];
             String result = null;
             if (split.length == 2) {
+                logger.info("正在删除 usrId:{} onChannel:{}", usrId, channelId);
                 result = deleteSubscribe(channelId, usrId);
             } else if (split.length == 3) {
                 String discordId = split[2];
+                logger.info("正在删除 usrId:{} onChannel:{} @discord:{}", usrId, channelId, discordId);
                 result = deletePing(channelId, usrId, discordId);
             } else {
+                logger.error("选择出错 choiceData:{}", choiceData.get(i - 1));
                 result = "选择出错";
             }
-            ;
             displayManageMenu(event, result);
         });
         builder.build().display(event.getChannel());
@@ -106,6 +112,7 @@ public class RemoveCommand extends ChannelCommand {
         CommandResultVO commandResult = restTemplate.getForObject(URL.toString(), CommandResultVO.class);
         if (commandResult != null)
             return commandResult.getMsg();
+        logger.error("deleteSubscribe commandResult URL:{} return null", URL.toString());
         return null;
     }
 
@@ -120,6 +127,7 @@ public class RemoveCommand extends ChannelCommand {
         CommandResultVO commandResult = restTemplate.getForObject(URL.toString(), CommandResultVO.class);
         if (commandResult != null)
             return commandResult.getMsg();
+        logger.error("deletePing commandResult URL:{} return null", URL.toString());
         return null;
     }
 }

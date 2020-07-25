@@ -72,7 +72,7 @@ public class BotListenerAdapter extends ListenerAdapter {
 
     @Override
     public void onReconnect(@Nonnull ReconnectedEvent event) {
-        logger.info("Bot已重新连接 status:" + event.getJDA().getStatus().name());
+        logger.warn("Bot已重新连接 status:" + event.getJDA().getStatus().name());
     }
 
     @Override
@@ -82,21 +82,20 @@ public class BotListenerAdapter extends ListenerAdapter {
 
     private void sendToChannel(JDA jda, MessageDTO message, MessageEmbed embed, String content, String channelId) {
         //好友通知
-        logger.debug("send to channel：" + channelId + " <- " + message.toString());
         new MessageBuilder()
                 .setContent(Optional.ofNullable(content).map(t -> t + "\n").orElse("") + String.join("\n", message.getPings()))
                 .setEmbed(embed).sendTo(jda.getTextChannelById(channelId)).queue(
-                suc -> logger.debug(message.getChannelId() + "发送成功：" + embed.getAuthor().getName() + " " + message.getEmbedBuilder().getDescriptionBuilder().toString()
+                suc -> logger.info(message.getChannelId() + "发送成功：" + embed.getAuthor().getName() + " " + message.getEmbedBuilder().getDescriptionBuilder().toString()
                         + Optional.ofNullable(message.getEmbedBuilder()).map(EmbedBuilder::getFields).filter(fields -> fields.size() > 0).map(m -> m.get(0).getName() + " ").orElse("")
                         + Optional.ofNullable(message.getEmbedBuilder()).map(EmbedBuilder::getFields).filter(fields -> fields.size() > 0).map(m -> m.get(0).getValue().replaceAll("\n", " ")).orElse("")),
                 fail -> {
-                    logger.debug(message.getChannelId() + "发送失败：" + embed.getAuthor().getName() + " " + message.getEmbedBuilder().getDescriptionBuilder().toString()
+                    logger.warn(message.getChannelId() + "发送失败：" + embed.getAuthor().getName() + " " + message.getEmbedBuilder().getDescriptionBuilder().toString()
                             + Optional.ofNullable(message.getEmbedBuilder()).map(EmbedBuilder::getFields).filter(fields -> fields.size() > 0).map(m -> m.get(0).getName() + " ").orElse("")
                             + Optional.ofNullable(message.getEmbedBuilder()).map(EmbedBuilder::getFields).filter(fields -> fields.size() > 0).map(m -> m.get(0).getValue().replaceAll("\n", " ")).orElse(""));
                     try {
                         messageBlockingQueue.put(message);
                     } catch (InterruptedException e) {
-                        logger.error("put message failed." + message.toString());
+                        logger.error("发送出错 message:{} content:{} channelId:{}", message.toString(), content, channelId, e);
                     }
                 });
     }
@@ -122,7 +121,7 @@ public class BotListenerAdapter extends ListenerAdapter {
                 .build()).queue(succ -> {
             logger.debug("编辑成功：" + channelId + "  messageId:" + message.getCallback());
         }, fail -> {
-            logger.debug("编辑失败：" + channelId + "  messageId:" + message.getCallback());
+            logger.warn("编辑失败：" + channelId + "  messageId:" + message.getCallback());
         });
     }
 

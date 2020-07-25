@@ -11,6 +11,8 @@ import com.jagrosh.jdautilities.command.CommandEvent;
 import com.jagrosh.jdautilities.commons.waiter.EventWaiter;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.MessageBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -19,6 +21,7 @@ import java.time.Instant;
 import java.util.*;
 
 public class ShowOnlinesCommand extends ChannelCommand {
+    private static final Logger logger = LoggerFactory.getLogger(ShowOnlinesCommand.class);
     private final RestTemplate restTemplate;
     private final EventWaiter waiter;
 
@@ -38,6 +41,7 @@ public class ShowOnlinesCommand extends ChannelCommand {
         URI URL = UriComponentsBuilder.fromUriString(uri)
                 .queryParam("channelId", event.getChannel().getId())
                 .buildAndExpand(urlParams).toUri();
+        logger.info("正在查询在线好友 Channel:{} - {}", event.getChannel().getId(), event.getChannel().getName());
         event.getChannel().sendMessage("正在查询在线好友...").queue(msg -> {
             try {
                 CommandResultVO commandResult = restTemplate.getForObject(URL.toString(), CommandResultVO.class);
@@ -69,10 +73,11 @@ public class ShowOnlinesCommand extends ChannelCommand {
                     embedBuilder.setFooter("当前在线好友 " + users.size() + "人");
                     msg.editMessage(new MessageBuilder().setEmbed(embedBuilder.build()).setContent("查询成功").build()).queue();
                 } else {
+                    logger.error("ShowOnlinesCommand URL:{} return:{}", URL.toString(), commandResult.toString());
                     msg.editMessage("查询失败\n服务器返回错误：" + commandResult.getMsg());
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                logger.error("查询在线好友出错", e);
                 msg.editMessage("查询出错 原因：" + e.getMessage()).queue();
             }
         });

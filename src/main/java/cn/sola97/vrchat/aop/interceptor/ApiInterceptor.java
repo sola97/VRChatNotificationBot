@@ -30,7 +30,7 @@ public class ApiInterceptor implements ClientHttpRequestInterceptor {
         URI uri = UriComponentsBuilder.fromUri(request.getURI()).queryParam("apiKey", "JlE5Jldo5Jibnk5O5hTx6XVqsJu4WJ26").build(true).toUri();
         HttpHeaders headers = request.getHeaders();
         headers.add(HttpHeaders.COOKIE,cookieServiceImpl.getCookie());
-        logger.info("VRChatAPI - " + request.getMethod() + " " + uri.toString());
+        logger.debug("VRChatAPI - " + request.getMethod() + " " + uri.toString());
         return execution.execute(new MyHttpRequestWrapper(request, uri, headers), body);
     }
 

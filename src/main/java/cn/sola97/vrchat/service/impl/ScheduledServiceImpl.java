@@ -10,6 +10,7 @@ import cn.sola97.vrchat.pojo.VRCEventDTO;
 import cn.sola97.vrchat.pojo.impl.WsFriendContent;
 import cn.sola97.vrchat.service.*;
 import cn.sola97.vrchat.utils.VRCEventDTOFactory;
+import cn.sola97.vrchat.utils.WorldUtil;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.TextChannel;
@@ -88,7 +89,7 @@ public class ScheduledServiceImpl implements ScheduledService {
                 logger.debug("Discord Bot current status: " + jda.getStatus().name());
                 int count = 0;
                 while (this.jda.getStatus() != JDA.Status.CONNECTED && this.jda.getStatus() != JDA.Status.WAITING_TO_RECONNECT) {
-                    logger.info("Discord Bot " + jda.getStatus().name() + "." + count + " seconds have passed.");
+                    logger.warn("Discord Bot " + jda.getStatus().name() + "." + count + " seconds have passed.");
                     if (count >= 30) {
                         jda.rebuild();
                         break;
@@ -108,7 +109,7 @@ public class ScheduledServiceImpl implements ScheduledService {
                 logger.debug("websocketManager current status:" + (webSocketConnectionManager.isConnected() ? "CONNECTED" : "DISCONNECTED"));
                 int count = 0;
                 while (!this.webSocketConnectionManager.isConnected()) {
-                    logger.info("websocketManager DISCONNECTED" + "." + count + " seconds have passed.");
+                    logger.warn("websocketManager DISCONNECTED" + "." + count + " seconds have passed.");
                     if (count >= 10) {
                         webSocketConnectionManager.rebuild();
                         break;
@@ -128,7 +129,7 @@ public class ScheduledServiceImpl implements ScheduledService {
                 logger.debug("messageQueue current size:" + (messageServiceImpl.getMessageQueueSize()));
                 int count = 0;
                 while (messageServiceImpl.getMessageQueueSize() > 0) {
-                    logger.info("messageQueue current size:" + (messageServiceImpl.getMessageQueueSize()) + "." + count + " seconds have passed.");
+                    logger.warn("messageQueue current size:" + (messageServiceImpl.getMessageQueueSize()) + "." + count + " seconds have passed.");
                     if (count >= 30) {
                         jda.rebuild();
                         break;
@@ -137,7 +138,7 @@ public class ScheduledServiceImpl implements ScheduledService {
                     count++;
                 }
             } catch (Exception e) {
-                logger.error(e.getMessage());
+                logger.error("消息队列：", e.getMessage());
             }
         }, 10, 10, TimeUnit.SECONDS);
     }
@@ -153,10 +154,11 @@ public class ScheduledServiceImpl implements ScheduledService {
     }
 
     private void checkOnlineUsers() {
+        logger.info("开始在线好友状态检查...");
         scheduledExecutorService.scheduleAtFixedRate(() -> {
-            logger.debug("checking online users...");
             CompletableFuture.supplyAsync(() -> vrchatApiServiceImpl.getFriends(false), asyncExecutor)
                     .thenAccept(onlineFriends -> {
+                        Integer count = 0;
                         for (UserOnline onlineUser : onlineFriends) {
                             UserOnline cachedUser = cacheServiceImpl.getOnlineUser(onlineUser.getId());
                             cacheServiceImpl.setUserOnline(onlineUser);
@@ -165,32 +167,42 @@ public class ScheduledServiceImpl implements ScheduledService {
                             if (cachedUser == null) {
                                 World world = vrchatApiServiceImpl.getWorldById(worldId, true);
                                 VRCEventDTO<WsFriendContent> event = VRCEventDTOFactory.createOnlineEvent((User) onlineUser, world);
-
+                                logger.info("轮询-好友：没有获取到好友{} 的缓存数据，发送上线通知", onlineUser.getDisplayName());
                                 eventHandlerMapping.friendOnline(event);
-                                return;
+                                count++;
+                                continue;
                             }
-                            if (!cachedUser.getLocation().equals(cachedUser.getLocation())) {
-                                World world = vrchatApiServiceImpl.getWorldById(worldId, true);
-                                VRCEventDTO<WsFriendContent> event = VRCEventDTOFactory.createLocationEvent((User) onlineUser, world);
+                            if (!cachedUser.getLocation().equals(onlineUser.getLocation())) {
 
+                                Map<String, String> newLocationMap = ReleaseStatusEnums.parseLocation(onlineUser.getLocation());
+                                Map<String, String> oldLocationMap = ReleaseStatusEnums.parseLocation(cachedUser.getLocation());
+                                World newWorld = vrchatApiServiceImpl.getWorldById(newLocationMap.get("worldId"), true);
+                                World oldWorld = vrchatApiServiceImpl.getWorldById(oldLocationMap.get("worldId"), true);
+                                VRCEventDTO<WsFriendContent> event = VRCEventDTOFactory.createLocationEvent((User) onlineUser, newWorld);
+                                logger.info("轮询-好友：{}进入了更换了地图 {} -> {}", cachedUser.getDisplayName(),
+                                        WorldUtil.convertToString(oldWorld, oldLocationMap),
+                                        WorldUtil.convertToString(newWorld, newLocationMap));
                                 eventHandlerMapping.friendLocation(event);
-
+                                count++;
                             }
                             if (!cachedUser.getCurrentAvatarImageUrl().equals(onlineUser.getCurrentAvatarImageUrl()) ||
                                     !cachedUser.getCurrentAvatarThumbnailImageUrl().equals(onlineUser.getCurrentAvatarThumbnailImageUrl())) {
                                 World world = vrchatApiServiceImpl.getWorldById(worldId, true);
                                 VRCEventDTO<WsFriendContent> event = VRCEventDTOFactory.createUpdateEvent((User) onlineUser, world);
-
+                                logger.info("轮询-好友：{}更换了角色 {} -> {}", cachedUser.getDisplayName(), cachedUser.getCurrentAvatarImageUrl(), onlineUser.getCurrentAvatarImageUrl());
                                 eventHandlerMapping.friendAvatar(event);
+                                count++;
 
                             }
                             if (!cachedUser.getStatusDescription().equals(onlineUser.getStatusDescription())) {
                                 World world = vrchatApiServiceImpl.getWorldById(worldId, true);
                                 VRCEventDTO<WsFriendContent> event = VRCEventDTOFactory.createUpdateEvent((User) onlineUser, world);
-
+                                logger.info("轮询-好友：{}更换了描述 {} -> {}", cachedUser.getDisplayName(), cachedUser.getStatusDescription(), onlineUser.getStatusDescription());
                                 eventHandlerMapping.friendDescription(event);
+                                count++;
                             }
                         }
+                        logger.info("结束在线好友状态检查 总事件数：{}", count);
                     });
         }, 0, checkOnlinePeriod, TimeUnit.SECONDS);
     }
@@ -202,32 +214,35 @@ public class ScheduledServiceImpl implements ScheduledService {
     @Override
     public void checkChannelValid() {
         if (this.jda.getStatus() == JDA.Status.CONNECTED) {
-            logger.info("正在检查Channel是否有效");
+            logger.info("正在检查Channel是否有效...");
             List<Channel> channels = channelServiceImpl.selAllChannel();
+            Integer success = 0;
+            Integer error = 0;
             for (Channel channel : channels) {
-                CompletableFuture.runAsync(() -> {
-                    try {
-                        TextChannel textChannel = this.jda.getJda().getTextChannelById(channel.getChannelId());
-                        //如果频道不存在，且没有被disable
-                        if (textChannel == null && !channel.getDisabled()) {
-                            //disable
-                            channel.setDisabled(true);
-                            channel.setUpdatedAt(new Date());
-                            logger.info("现在无效的Channel:" + channel.getChannelName() + " id:" + channel.getChannelId());
-                            //update
-                            channelServiceImpl.updChannel(channel);
-                        } else if (textChannel != null && channel.getDisabled()) {
-                            channel.setDisabled(false);
-                            channel.setUpdatedAt(new Date());
-                            logger.info("现在有效的Channel: " + channel.getChannelName() + " id:" + channel.getChannelId());
-                        }
-                    } catch (Exception e) {
-                        logger.error("检查Channel：" + channel.getChannelName() + "  ----  " + channel.getChannelId() + "出错 \n", e.getMessage());
+                try {
+                    TextChannel textChannel = this.jda.getJda().getTextChannelById(channel.getChannelId());
+                    //如果频道不存在，且没有被disable
+                    if (textChannel == null && !channel.getDisabled()) {
+                        //disable
+                        channel.setDisabled(true);
+                        channel.setUpdatedAt(new Date());
+                        logger.info("现在无效的Channel:" + channel.getChannelName() + " id:" + channel.getChannelId());
+                        //update
+                        channelServiceImpl.updChannel(channel);
+                    } else if (textChannel != null && channel.getDisabled()) {
+                        channel.setDisabled(false);
+                        channel.setUpdatedAt(new Date());
+                        logger.info("现在有效的Channel: " + channel.getChannelName() + " id:" + channel.getChannelId());
                     }
-                }, asyncExecutor);
+                    success++;
+                } catch (Exception e) {
+                    logger.error("检查Channel：" + channel.getChannelName() + "  ----  " + channel.getChannelId() + "出错 \n", e.getMessage());
+                    error++;
+                }
             }
+            logger.info("Channel状态检查结束 success：{} error:{}", channels.size(), error);
         } else {
-            logger.info("检查Channel是否有效时遇到问题，Bot " + this.jda.getStatus());
+            logger.warn("检查Channel是否有效时遇到问题，Bot stats:{} 本轮结束", this.jda.getStatus());
         }
     }
 
@@ -239,7 +254,7 @@ public class ScheduledServiceImpl implements ScheduledService {
             allFriends.addAll(vrchatApiServiceImpl.getFriendsWithCache(false));
             List<String> friendUserIds = allFriends.stream().map(UserOnline::getId).collect(Collectors.toList());
             friendUserIds.add("*");
-            logger.debug("获取到好友总数：{}", friendUserIds.size());
+            logger.info("获取到好友总数：{}", friendUserIds.size());
             List<Subscribe> subscribes = subscribeServiceImpl.selAllSubscribesNotInUsrIdList(friendUserIds);
 
             List<Ping> pings = pingServiceImpl.selAllPingNotInUsrIdList(friendUserIds);

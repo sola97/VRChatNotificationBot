@@ -10,6 +10,7 @@ import cn.sola97.vrchat.pojo.CommandResultVO;
 import cn.sola97.vrchat.pojo.MessageDTO;
 import cn.sola97.vrchat.pojo.SubscribeDTO;
 import cn.sola97.vrchat.service.*;
+import cn.sola97.vrchat.utils.WorldUtil;
 import net.dv8tion.jda.api.EmbedBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -146,7 +147,7 @@ public class CommandServiceImpl implements CommandService {
                         futures.add(CompletableFuture.supplyAsync(() -> commandServiceImpl.showUser(subscribe.getUsrId(), channelId, null), asyncExecutor));
                     }
                     CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).exceptionally(ex -> {
-                        logger.info("error on showuser:" + ex.getMessage());
+                        logger.error("error on showuser:" + ex.getMessage());
                         return null;
                     }).join();
                     return futures;
@@ -182,7 +183,7 @@ public class CommandServiceImpl implements CommandService {
                         futures.add(CompletableFuture.supplyAsync(() -> commandServiceImpl.showUser(user.getId(), channelId, null), asyncExecutor));
                     }
                     CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).exceptionally(ex -> {
-                        logger.info("error on showuser:" + ex.getMessage());
+                        logger.error("error on showuser:" + ex.getMessage());
                         return null;
                     }).join();
                     return futures;
@@ -294,19 +295,8 @@ public class CommandServiceImpl implements CommandService {
         String description = "当前状态";
         Map<String, String> locationMap = message.getLocationMap();
         String instance = user.getInstanceId();
-        if (locationMap.get("instanceId") == null) {
-            if (world != null && world.getName() != null)
-                embedBuilder.addField(description, world.getName(), true);
-            else
-                embedBuilder.setDescription(description);
-        } else {
-            List<List> lists = world.getInstances().stream().filter(Objects::nonNull).filter(pair -> instance.equals(pair.get(0))).collect(Collectors.toList());
-            String num = lists.isEmpty() ? "?" : lists.get(0).get(1).toString();
-            String value = new StringBuffer()
-                    .append(world.getName()).append(":").append(locationMap.get("instanceId")).append("\n")
-                    .append(locationMap.get("username")).append(" ").append(locationMap.get("status")).append(" ").append(num).append("/").append(world.getCapacity()).toString();
-            embedBuilder.addField(description, value, true);
-        }
+        String value = WorldUtil.convertToString(world, locationMap, instance);
+        embedBuilder.addField(description, value, true);
         String lastLogin = "";
         if (user.getLast_login() != null) {
             try {
@@ -314,7 +304,7 @@ public class CommandServiceImpl implements CommandService {
                 simpleDateFormat.setTimeZone(TimeZone.getTimeZone(timezone));
                 lastLogin = "\n上次登录：" + simpleDateFormat.format(user.getLast_login());
             } catch (Exception e) {
-                logger.error(e.getMessage());
+                logger.error("格式化上次登录时间出错 getLast_login():" + user.getLast_login(), e);
             }
         }
 

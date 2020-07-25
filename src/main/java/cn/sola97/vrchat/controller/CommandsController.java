@@ -63,7 +63,7 @@ public class CommandsController {
             }
             return commandServiceImpl.subscribe(channelId, channelName, decodedName, decodedDiscordIds, discordNames, byteSubMask, bytePingMask);
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("addSubscribe error", e);
             return new CommandResultVO().setCode(500).setMsg(e.getMessage());
         }
     }
@@ -73,7 +73,7 @@ public class CommandsController {
         try {
             return commandServiceImpl.deleteSubscribe(channelId, usrId);
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("deleteSubscribe error", e);
             return new CommandResultVO().setCode(500).setMsg(e.getMessage());
         }
     }
@@ -84,7 +84,7 @@ public class CommandsController {
             String decoded = URLDecoder.decode(discordId, "UTF-8");
             return commandServiceImpl.deletePing(channelId, usrId, decoded);
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("deleteSubscribe error", e);
             return new CommandResultVO().setCode(500).setMsg(e.getMessage());
         }
     }
@@ -95,7 +95,7 @@ public class CommandsController {
         try {
             return commandServiceImpl.showConfigByChannelId(channelId);
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("showChannelConfig error", e);
             return new CommandResultVO().setCode(500).setMsg(e.getMessage());
         }
     }
@@ -105,7 +105,7 @@ public class CommandsController {
         try {
             return commandServiceImpl.showChannelUsers(channelId, callback);
         } catch (Exception e) {
-            logger.error("show user failed", e);
+            logger.error("showChannelUsers error", e);
             return new CommandResultVO().setCode(500).setMsg(e.getMessage());
         }
     }
@@ -115,7 +115,7 @@ public class CommandsController {
         try {
             return commandServiceImpl.getOnlineUsers(channelId);
         } catch (Exception e) {
-            logger.error("show user failed", e);
+            logger.error("showOnlineUsers error", e);
             return new CommandResultVO().setCode(500).setMsg(e.getMessage());
         }
     }
@@ -125,7 +125,7 @@ public class CommandsController {
         try {
             return commandServiceImpl.showUserByName(displayName, channelId, callback);
         } catch (Exception e) {
-            logger.error("show user failed", e);
+            logger.error("showUser error", e);
             return new CommandResultVO().setCode(500).setMsg(e.getMessage());
         }
     }
@@ -135,7 +135,7 @@ public class CommandsController {
         try {
             return commandServiceImpl.showUserById(userId, channelId, callback);
         } catch (Exception e) {
-            logger.error("show user failed", e);
+            logger.error("showUserById error", e);
             return new CommandResultVO().setCode(500).setMsg(e.getMessage());
         }
     }
@@ -146,7 +146,7 @@ public class CommandsController {
             String decoded = URLDecoder.decode(search, "UTF-8");
             return commandServiceImpl.searchUsers(channelId, decoded, callback);
         } catch (Exception e) {
-            logger.error("search user failed", e);
+            logger.error("searchUser error", e);
             return new CommandResultVO().setCode(500).setMsg(e.getMessage());
         }
     }
@@ -157,7 +157,7 @@ public class CommandsController {
             String decoded = URLDecoder.decode(discordId, "UTF-8");
             return commandServiceImpl.getPingMask(channelId, usrId, decoded);
         } catch (Exception e) {
-            logger.error("获取mask失败", e);
+            logger.error("getPingMask(channelId, usrId, discordId)出错", e);
             return new CommandResultVO().setCode(500).setMsg(e.getMessage());
         }
     }
@@ -167,7 +167,7 @@ public class CommandsController {
         try {
             return commandServiceImpl.getSubscribeMask(channelId, usrId);
         } catch (Exception e) {
-            logger.error("获取subscribe mask失败", e);
+            logger.error("getPingMask(channelId,usrId)出错", e);
             return new CommandResultVO().setCode(500).setMsg(e.getMessage());
         }
     }
@@ -177,7 +177,7 @@ public class CommandsController {
         try {
             return commandServiceImpl.updateSubscribeMask(channelId, usrId, mask);
         } catch (Exception e) {
-            logger.error("更新subscribe mask失败", e);
+            logger.error("更新SubscribeMask出错", e);
             return new CommandResultVO().setCode(500).setMsg(e.getMessage());
         }
     }
@@ -188,7 +188,7 @@ public class CommandsController {
             String decoded = URLDecoder.decode(discordId, "UTF-8");
             return commandServiceImpl.updatePingMask(channelId, usrId, decoded, mask);
         } catch (Exception e) {
-            logger.error("更新ping mask失败", e);
+            logger.error("更新PingMask出错", e);
             return new CommandResultVO().setCode(500).setMsg(e.getMessage());
         }
     }
@@ -198,7 +198,7 @@ public class CommandsController {
         try {
             return commandServiceImpl.getUserIdByName(displayName);
         } catch (Exception e) {
-            logger.error("查询用户ID失败", e);
+            logger.error("查询用户ID出错", e);
             return new CommandResultVO().setCode(500).setMsg(e.getMessage());
         }
     }
@@ -213,7 +213,7 @@ public class CommandsController {
             else
                 return new CommandResultVO().setCode(403).setMsg("不支持的参数");
         } catch (Exception e) {
-            logger.error("重连Websocket失败", e);
+            logger.error("重连Websocket出错", e);
             return new CommandResultVO().setCode(500).setMsg(e.getMessage());
         }
     }
@@ -228,7 +228,7 @@ public class CommandsController {
             else
                 return new CommandResultVO().setCode(403).setMsg("不支持的参数");
         } catch (Exception e) {
-            logger.error("重启Bot失败", e);
+            logger.error("重启Bot出错", e);
             return new CommandResultVO().setCode(500).setMsg(e.getMessage());
         }
     }
@@ -240,7 +240,7 @@ public class CommandsController {
             commandServiceImpl.reconnectWebsocket();
             return new CommandResultVO().setCode(200).setMsg("操作成功");
         } catch (Exception e) {
-            logger.error("重启系统失败", e);
+            logger.error("重启系统出错", e);
             return new CommandResultVO().setCode(500).setMsg(e.getMessage());
         }
     }

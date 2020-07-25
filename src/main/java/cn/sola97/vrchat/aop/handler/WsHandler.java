@@ -47,7 +47,7 @@ public class WsHandler extends TextWebSocketHandler {
             ObjectMapper mapper = new ObjectMapper();
             JsonNode json = mapper.readTree(message.getPayload());
             if (json.hasNonNull("err")) {
-                logger.debug("err:" + json.get("err").asText() + " payload:" + message.getPayload());
+                logger.warn("err:" + json.get("err").asText() + " payload:" + message.getPayload());
                 cookieServiceImpl.deleteCookie();
                 session.close(CloseStatus.BAD_DATA);
             }
@@ -61,6 +61,6 @@ public class WsHandler extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
-        logger.info("Connection closed.");
+        logger.warn("Connection closed.");
     }
 }

@@ -11,11 +11,14 @@ import com.jagrosh.jdautilities.command.CommandEvent;
 import com.jagrosh.jdautilities.commons.waiter.EventWaiter;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.MessageBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.LinkedHashMap;
 
 public class ShowConfigCommand extends ChannelCommand {
+    private static final Logger logger = LoggerFactory.getLogger(ShowConfigCommand.class);
     private final RestTemplate restTemplate;
     private final EventWaiter waiter;
 
@@ -32,6 +35,7 @@ public class ShowConfigCommand extends ChannelCommand {
     protected void execute(CommandEvent event)
     {
         String uri = "/rest/show/config/{channelId}";
+        logger.info("正在查询Channel配置:{}", event.getChannel().getId());
         CommandResultVO commandResult = restTemplate.getForObject(uri, CommandResultVO.class,event.getChannel().getId());
         try {
             LinkedHashMap datahashmap = (LinkedHashMap) commandResult.getData();
@@ -55,7 +59,7 @@ public class ShowConfigCommand extends ChannelCommand {
             messageBuilder.setEmbed(embedBuilder.build());
             event.reply(messageBuilder.build());
         }catch (Exception e){
-            e.printStackTrace();
+            logger.error("ShowConfigCommand error", e);
             event.reply(commandResult.toString() + "\n" + e.getMessage());
         }
     }

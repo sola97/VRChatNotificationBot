@@ -4,6 +4,8 @@ import cn.sola97.vrchat.commands.ChannelCommand;
 import cn.sola97.vrchat.pojo.CommandResultVO;
 import com.jagrosh.jdautilities.command.CommandEvent;
 import com.jagrosh.jdautilities.commons.waiter.EventWaiter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -12,6 +14,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class ShowUserCommand extends ChannelCommand {
+    private static final Logger logger = LoggerFactory.getLogger(ShowUserCommand.class);
     private final RestTemplate restTemplate;
     private final EventWaiter waiter;
 
@@ -32,11 +35,12 @@ public class ShowUserCommand extends ChannelCommand {
         String args = event.getArgs().trim();
         String uri = "/rest/show/user/{channelId}/{args}";
         String message = "正在查询好友 " + args + "...";
+
         if (args.startsWith("usr_")) {
             uri = "/rest/show/userid/{channelId}/{args}";
             message = "正在查询ID：" + args;
         }
-
+        logger.info("{} on Channel:{} - {}", message, event.getChannel().getId(), event.getChannel().getName());
         String finalUri = uri;
         event.getChannel().sendMessage(message).queue(msg -> {
             String argStr = event.getArgs().trim();
@@ -48,6 +52,7 @@ public class ShowUserCommand extends ChannelCommand {
                     .buildAndExpand(urlParams).toUri();
             CommandResultVO commandResult = restTemplate.getForObject(URL.toString(), CommandResultVO.class);
             if (commandResult != null && commandResult.getCode() != 200) {
+                logger.error("ShowUserCommand URL:{}  return:{}", URL.toString(), commandResult);
                 msg.editMessage(commandResult.getMsg()).queue();
             }
         });

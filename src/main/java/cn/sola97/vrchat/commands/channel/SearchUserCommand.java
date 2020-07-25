@@ -4,6 +4,8 @@ import cn.sola97.vrchat.commands.ChannelCommand;
 import cn.sola97.vrchat.pojo.CommandResultVO;
 import com.jagrosh.jdautilities.command.CommandEvent;
 import com.jagrosh.jdautilities.commons.waiter.EventWaiter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -12,6 +14,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class SearchUserCommand extends ChannelCommand {
+    private static final Logger logger = LoggerFactory.getLogger(SearchUserCommand.class);
     private final RestTemplate restTemplate;
     private final EventWaiter waiter;
 
@@ -26,6 +29,7 @@ public class SearchUserCommand extends ChannelCommand {
     @Override
     protected void execute(CommandEvent event) {
         String uri = "/rest/search/user/{channelId}/{search}";
+        logger.info("正在搜索" + event.getArgs());
         event.getChannel().sendMessage("正在搜索 " + event.getArgs().trim() + "...").queue(msg -> {
             String argStr = event.getArgs().trim();
             Map<String, Object> urlParams = new HashMap<>();
@@ -36,6 +40,7 @@ public class SearchUserCommand extends ChannelCommand {
                     .buildAndExpand(urlParams).toUri();
             CommandResultVO commandResult = restTemplate.getForObject(URL.toString(), CommandResultVO.class);
             if (commandResult != null && commandResult.getCode() != 200) {
+                logger.error("SearchUserCommand URL:{} return:{}", URL.toString(), commandResult);
                 msg.editMessage(commandResult.getMsg()).queue();
             }
         });

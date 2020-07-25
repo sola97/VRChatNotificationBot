@@ -39,7 +39,7 @@ public class EventHandlerMapping {
             else if (contentType.equals("requestInvite")) handlerMapping.notificationRequestInvite(event);
             else if (contentType.equals("invite")) handlerMapping.notificationInvite(event);
             else
-                logger.info("unsupport websocket notification type:" + contentType + "content:" + event.getContent().toString());
+                logger.warn("unsupport websocket notification type:" + contentType + "content:" + event.getContent().toString());
         } else handlerMapping.doNothing(event);
     }
 
@@ -73,7 +73,7 @@ public class EventHandlerMapping {
 
 
     public String doNothing(VRCEventDTO event) {
-        logger.info("什么都不做" + event.getContent().toString());
+        logger.warn("什么都不做" + event.getContent().toString());
         return "什么都不做";
     }
 

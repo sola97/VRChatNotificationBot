@@ -8,6 +8,8 @@ import com.jagrosh.jdautilities.commons.waiter.EventWaiter;
 import com.jagrosh.jdautilities.menu.OrderedMenu;
 import net.dv8tion.jda.api.entities.IMentionable;
 import net.dv8tion.jda.api.entities.User;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -20,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class AddCommand extends ChannelCommand {
+    private static final Logger logger = LoggerFactory.getLogger(AddCommand.class);
     private RestTemplate restTemplate;
     private final EventWaiter waiter;
     public AddCommand(EventWaiter waiter,RestTemplate restTemplate)
@@ -90,13 +93,15 @@ public class AddCommand extends ChannelCommand {
         event.getChannel().sendMessage("正在添加订阅...").queue(m -> {
             CommandResultVO commandResult = restTemplate.getForObject(URL.toString(), CommandResultVO.class);
             if (commandResult != null && commandResult.getCode() == 200) {
-
                 m.editMessage("订阅成功").queue(msg -> {
+                    logger.info("订阅成功 usrId:{} onChannel:{}", finalUsrId, channelId);
                     displayMaskMenu(event, builder, channelId, finalUsrId, commandResult.getData().toString(), discordIds, discordNames);
                 });
             } else if (commandResult != null) {
-                m.editMessage("订阅失败 原因：" + Optional.ofNullable(commandResult.getMsg()).orElse("") + " " + Optional.ofNullable(commandResult.getData()).orElse("")).queue();
+                logger.warn("订阅失败 URL:{} return:{}", URL.toString(), commandResult.toString());
+                m.editMessage("订阅失败：" + Optional.ofNullable(commandResult.getMsg()).orElse("") + " " + Optional.ofNullable(commandResult.getData()).orElse("")).queue();
             } else {
+                logger.warn("订阅失败 URL:{} return:null", URL.toString());
                 m.editMessage("订阅失败").queue();
             }
         });
@@ -155,8 +160,10 @@ public class AddCommand extends ChannelCommand {
         CommandResultVO commandResult = restTemplate.getForObject(URL.toString(), CommandResultVO.class);
         if (commandResult != null && commandResult.getCode() == 200) {
             return commandResult.getData().toString();
+        } else {
+            logger.warn("querySubscribeMask URL:{} return:{}", URL.toString(), Optional.ofNullable(commandResult));
+            return null;
         }
-        return null;
     }
 
     private boolean updateSubMask(String channelId, String usrId, String mask) {
@@ -197,8 +204,10 @@ public class AddCommand extends ChannelCommand {
         CommandResultVO commandResult = restTemplate.getForObject(URL.toString(), CommandResultVO.class);
         if (commandResult != null && commandResult.getCode() == 200) {
             return commandResult.getData().toString();
+        } else {
+            logger.warn("queryPingMask URL:{} return:{}", URL.toString(), Optional.of(commandResult));
+            return null;
         }
-        return null;
     }
 
     private String getUsrIdByDisplayName(String displayName) {
@@ -206,7 +215,9 @@ public class AddCommand extends ChannelCommand {
         CommandResultVO commandResult = restTemplate.getForObject(uri, CommandResultVO.class);
         if (commandResult != null & commandResult.getCode() == 200) {
             return commandResult.getData().toString();
+        } else {
+            logger.warn("getUsrIdByDisplayName URL:{} return:{}", uri, Optional.of(commandResult));
+            return null;
         }
-        return null;
     }
 }

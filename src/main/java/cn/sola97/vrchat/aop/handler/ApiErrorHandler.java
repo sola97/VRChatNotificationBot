@@ -23,15 +23,15 @@ public class ApiErrorHandler implements ResponseErrorHandler {
             cookieServiceImpl.deleteCookie();
             return true;
         }else if(clientHttpResponse.getStatusCode()==HttpStatus.FORBIDDEN){
-            logger.debug("Call returned a error 403 forbidden resposne");
+            logger.warn("Call returned a error 403 forbidden resposne");
         }
         return !clientHttpResponse.getStatusCode().is2xxSuccessful();
     }
 
     @Override
     public void handleError(ClientHttpResponse clientHttpResponse) throws IOException {
-        logger.debug(clientHttpResponse.getRawStatusCode()+clientHttpResponse.getRawStatusCode()+"");
-        logger.debug(clientHttpResponse.getHeaders().toString());
-        logger.debug(clientHttpResponse.getBody().toString());
+        logger.error(clientHttpResponse.getRawStatusCode() + clientHttpResponse.getRawStatusCode() + "");
+        logger.error(clientHttpResponse.getHeaders().toString());
+        logger.error(clientHttpResponse.getBody().toString());
     }
 }
