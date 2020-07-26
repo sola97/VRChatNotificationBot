@@ -138,7 +138,7 @@ public class ScheduledServiceImpl implements ScheduledService {
                     count++;
                 }
             } catch (Exception e) {
-                logger.error("消息队列：", e.getMessage());
+                logger.error("消息队列出错：", e);
             }
         }, 10, 10, TimeUnit.SECONDS);
     }

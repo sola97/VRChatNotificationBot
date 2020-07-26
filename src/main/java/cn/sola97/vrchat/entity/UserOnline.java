@@ -62,4 +62,7 @@ public interface UserOnline {
 
     void setLocation(String location);
 
+    Integer getFriendIndex();
+
+    void setFriendIndex(Integer friendIndex);
 }

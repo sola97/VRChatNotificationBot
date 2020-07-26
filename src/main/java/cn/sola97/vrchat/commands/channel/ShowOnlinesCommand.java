@@ -63,7 +63,8 @@ public class ShowOnlinesCommand extends ChannelCommand {
                         else if (status.equals("busy")) emoji = "🔴";
                         else if (status.equals("ask me")) emoji = "\uD83D\uDFE0";
                         else if (status.equals("active")) emoji = "🟢";
-                        line.add(emoji + "　" + TrustCorlorEnums.getEmojiByTags(user.getTags()) + "　" + user.getDisplayName());
+                        String index = (user.getFriendIndex() == null) ? "" : "  **[[" + user.getFriendIndex() + "](https://vrchat.com/home/user/" + user.getId() + ")]**";
+                        line.add(emoji + "　" + TrustCorlorEnums.getEmojiByTags(user.getTags()) + "　" + user.getDisplayName() + index);
                         line.add("　　　" + "\uD83C\uDFF7" + "　" + user.getStatusDescription());
                         alignUtil.addLine(line);
                     }

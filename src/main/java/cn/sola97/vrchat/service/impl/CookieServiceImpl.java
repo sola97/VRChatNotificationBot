@@ -16,13 +16,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.Proxy;
-import java.util.Arrays;
-import java.util.Collections;
+import java.util.*;
 
 @Service
 public class CookieServiceImpl implements CookieService {
     private static final Logger logger = LoggerFactory.getLogger(CookieServiceImpl.class);
-
+    @Value("${vrchat.currentUserFriends}")
+    String currentUserFriendsKey;
     @Value("${vrchat.cookieKey}")
     private String cookieKey;
     @Value("${vrchat.username}")
@@ -40,7 +40,8 @@ public class CookieServiceImpl implements CookieService {
     @Value("${vrchat.api.proxy:}")
     String proxyString;
     @Autowired
-    private RedisTemplate redisTemplate;
+    RedisTemplate redisTemplate;
+    private Map<String, Integer> friendsIndexMap;
 
     private String authenticate() {
         Proxy proxy = HttpUtil.getProxy(proxyString);
@@ -66,7 +67,18 @@ public class CookieServiceImpl implements CookieService {
         setCurrentUserName(currentUser.getDisplayName());
         setCurrentUserId(currentUser.getId());
         setCurrentUser(currentUser);
+        setCurrentUserFriendList(currentUser.getFriends());
+        friendsIndexMap = convertFriendListToMap(currentUser.getFriends());
         return cookies;
+    }
+
+    private void setCurrentUserFriendList(List<String> friends) {
+        logger.info("更新用户好友列表");
+        try {
+            redisTemplate.opsForList().rightPushAll(currentUserFriendsKey, friends);
+        } catch (Exception e) {
+            logger.error("setCurrentUserFriendList", e);
+        }
     }
 
     @Override
@@ -142,4 +154,24 @@ public class CookieServiceImpl implements CookieService {
         return CookieUtil.convertStringToMap(getCookie()).get("auth");
     }
 
+    @Override
+    public Integer getCurrentUserFriendIndex(String usrId) {
+        if (friendsIndexMap != null && !friendsIndexMap.isEmpty()) {
+            return 1 + friendsIndexMap.getOrDefault(usrId, null);
+        } else if (redisTemplate.hasKey(currentUserFriendsKey)) {
+            List<String> friends = (List<String>) redisTemplate.opsForList().range(currentUserFriendsKey, 0, -1);
+            logger.info("从缓存中查询到好友列表 size:", friends.size());
+            friendsIndexMap = convertFriendListToMap(friends);
+            return 1 + friendsIndexMap.getOrDefault(usrId, null);
+        }
+        return null;
+    }
+
+    private Map<String, Integer> convertFriendListToMap(List<String> friends) {
+        Map<String, Integer> tempMap = new HashMap<>();
+        for (int i = 0; i < friends.size(); i++) {
+            tempMap.put(friends.get(i), i);
+        }
+        return tempMap;
+    }
 }

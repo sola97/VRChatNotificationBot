@@ -43,6 +43,8 @@ public class MessageServiceImpl implements MessageService {
     RedisTemplate redisTemplate;
     @Autowired
     QueueConfig queueConfig;
+    @Autowired
+    CookieService cookieServiceImpl;
     @Resource
     private BlockingQueue<MessageDTO> messageBlockingQueue;
     @Autowired
@@ -72,10 +74,10 @@ public class MessageServiceImpl implements MessageService {
                     message.addPing(ping.getDiscordId());
                 }
             }
-            if(!message.getPings().isEmpty()){
+            if (!message.getPings().isEmpty()) {
                 //有需要@的用户，添加消息
                 messages.add(message);
-            }else{
+            } else {
                 //没有需要@的用户，按照subscribe的默认Mask来
                 if ((subscribe.getMask() & event.getTypeMask()) > 0) {
                     messages.add(message);
@@ -85,8 +87,8 @@ public class MessageServiceImpl implements MessageService {
         }
         List<String> channels = messages.stream().map(MessageDTO::getChannelId).filter(Objects::nonNull).collect(Collectors.toList());
         channels.addAll(disabledChannels);
-            //如果没有查到订阅该usrId的频道，查询订阅了全部用户的频道
-        List<Subscribe> subscribeAlls = subscribeServiceImpl.selSubscribesByUsrIdNotInChannels("*",channels);
+        //如果没有查到订阅该usrId的频道，查询订阅了全部用户的频道
+        List<Subscribe> subscribeAlls = subscribeServiceImpl.selSubscribesByUsrIdNotInChannels("*", channels);
         for (Subscribe subscribe : subscribeAlls) {
             MessageDTO message = new MessageDTO();
             message.setType(MessageDTO.typeEnums.SEND_TO_CHANNEL);
@@ -99,10 +101,10 @@ public class MessageServiceImpl implements MessageService {
                     message.addPing(ping.getDiscordId());
                 }
             }
-            if(!message.getPings().isEmpty()){
+            if (!message.getPings().isEmpty()) {
                 //有需要@的用户
                 messages.add(message);
-            }else{
+            } else {
                 //没有需要@的用户，按照subscribe的默认Mask来
                 if ((subscribe.getMask() & event.getTypeMask()) > 0) {
                     messages.add(message);
@@ -119,6 +121,7 @@ public class MessageServiceImpl implements MessageService {
         message.setType(MessageDTO.typeEnums.SEND_TO_OWNER);
         messages.add(message);
     }
+
     @Override
     public void fillFriendData(VRCEventDTO<WsFriendContent> event) {
         User user = vrchatApiServiceImpl.getUserById(event.getContent().getUserId(), false);
@@ -145,18 +148,26 @@ public class MessageServiceImpl implements MessageService {
         content.setUser(sender);
         content.setWorld(world);
     }
+
     @Override
-    public void setEmbed(User user, @Nullable World world, MessageDTO message) {
+    public void
+    setEmbed(User user, @Nullable World world, MessageDTO message) {
         Map<String, String> locationMap = ReleaseStatusEnums.parseLocation(user.getLocation());
         if (locationMap.get("usrId") != null)
             locationMap.put("username", vrchatApiServiceImpl.getUserById(locationMap.get("usrId"), true).getDisplayName());
-        else locationMap.put("username", "");
+        else
+            locationMap.put("username", "");
         Instant now = Instant.now();
         EmbedBuilder embedBuilder = new EmbedBuilder();
         embedBuilder.setColor(TrustCorlorEnums.getByTags(user.getTags()));
         String userUrl = user.getUsername().startsWith("steam_") ?
                 "https://steamcommunity.com/profiles/" + user.getUsername().replaceAll("steam_", "") : null;
-        embedBuilder.setAuthor(user.getDisplayName(), userUrl, user.getCurrentAvatarThumbnailImageUrl());
+        Integer friendIndex = user.getFriendIndex();
+        if (friendIndex == null) {
+            friendIndex = cookieServiceImpl.getCurrentUserFriendIndex(user.getId());
+        }
+        String index = (friendIndex == null) ? "" : "  [" + friendIndex + "]";
+        embedBuilder.setAuthor(user.getDisplayName() + index, userUrl, user.getCurrentAvatarThumbnailImageUrl());
         embedBuilder.setTimestamp(now);
         if (user.getState() == null) {
             //不是好友,看不到
@@ -175,7 +186,7 @@ public class MessageServiceImpl implements MessageService {
 
     @Override
     public Long enqueueMessages(List<MessageDTO> messages) {
-        Long index=(long)0;
+        Long index = (long) 0;
         for (MessageDTO message : messages) {
             try {
                 messageBlockingQueue.put(message);

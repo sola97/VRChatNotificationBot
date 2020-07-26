@@ -78,6 +78,9 @@ public class VRChatApiServiceImpl implements VRChatApiService {
                 logger.error("CompletableFuture<User[]> completableFuture error", e);
             }
         }
+        for (UserOnline userOnline : userList) {
+            userOnline.setFriendIndex(cookieServiceImpl.getCurrentUserFriendIndex(userOnline.getId()));
+        }
         if (offline) {
             userList.forEach(user -> user.setState("offline"));
         } else {

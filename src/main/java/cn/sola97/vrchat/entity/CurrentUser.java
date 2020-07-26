@@ -29,12 +29,11 @@ public class CurrentUser extends User {
     private String steamId;
     private Boolean twoFactorAuthEnabled;
     private Boolean unsubscribe;
+    private Integer friendIndex;
 
     @Override
     public String toString() {
-        String user = super.toString();
         return "CurrentUser{" +
-                user.substring(user.indexOf("{")+1,user.lastIndexOf("}"))+
                 "activeFriends=" + activeFriends +
                 ", acceptedTOSVersion=" + acceptedTOSVersion +
                 ", currentAvatarAssetUrl='" + currentAvatarAssetUrl + '\'' +
@@ -57,7 +56,8 @@ public class CurrentUser extends User {
                 ", steamId='" + steamId + '\'' +
                 ", twoFactorAuthEnabled=" + twoFactorAuthEnabled +
                 ", unsubscribe=" + unsubscribe +
-                "} ";
+                ", friendIndex=" + friendIndex +
+                "} " + super.toString();
     }
 
     public List<String> getActiveFriends() {
@@ -234,6 +234,13 @@ public class CurrentUser extends User {
 
     public void setUnsubscribe(Boolean unsubscribe) {
         this.unsubscribe = unsubscribe;
+    }
+
+    public Integer getFriendIndex() {
+        return null;
+    }
+
+    public void setFriendIndex(Integer friendIndex) {
     }
 }
 class Feature{

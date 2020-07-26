@@ -27,6 +27,7 @@ public class User implements UserOnline {
     private String location;
     private String worldId;
     private String instanceId;
+    private Integer friendIndex;
 
     @Override
     public String toString() {
@@ -34,14 +35,14 @@ public class User implements UserOnline {
                 "id='" + id + '\'' +
                 ", username='" + username + '\'' +
                 ", displayName='" + displayName + '\'' +
-                ", bio=" + bio +
-                ", bioLinks='" + bioLinks + '\'' +
+                ", bio='" + bio + '\'' +
+                ", bioLinks=" + bioLinks +
                 ", currentAvatarImageUrl='" + currentAvatarImageUrl + '\'' +
                 ", currentAvatarThumbnailImageUrl='" + currentAvatarThumbnailImageUrl + '\'' +
                 ", status='" + status + '\'' +
                 ", statusDescription='" + statusDescription + '\'' +
                 ", state='" + state + '\'' +
-                ", tags='" + tags + '\'' +
+                ", tags=" + tags +
                 ", developerType='" + developerType + '\'' +
                 ", last_login=" + last_login +
                 ", last_platform='" + last_platform + '\'' +
@@ -51,6 +52,7 @@ public class User implements UserOnline {
                 ", location='" + location + '\'' +
                 ", worldId='" + worldId + '\'' +
                 ", instanceId='" + instanceId + '\'' +
+                ", friendIndex=" + friendIndex +
                 '}';
     }
 
@@ -239,5 +241,15 @@ public class User implements UserOnline {
 
     public void setInstanceId(String instanceId) {
         this.instanceId = instanceId;
+    }
+
+    @Override
+    public Integer getFriendIndex() {
+        return friendIndex;
+    }
+
+    @Override
+    public void setFriendIndex(Integer friendIndex) {
+        this.friendIndex = friendIndex;
     }
 }
