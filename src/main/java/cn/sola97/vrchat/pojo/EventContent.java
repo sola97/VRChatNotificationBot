@@ -24,4 +24,12 @@ public abstract class EventContent {
     }
 
     public abstract String getUserId();
+
+    @Override
+    public String toString() {
+        return "EventContent{" +
+                "user=" + user +
+                ", world=" + world +
+                '}';
+    }
 }

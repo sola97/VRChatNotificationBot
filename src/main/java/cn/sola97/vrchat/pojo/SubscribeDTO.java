@@ -16,4 +16,11 @@ public class SubscribeDTO extends Subscribe {
     public void setPings(List<Ping> pings) {
         this.pings = pings;
     }
+
+    @Override
+    public String toString() {
+        return "SubscribeDTO{" +
+                "pings=" + pings +
+                "} " + super.toString();
+    }
 }

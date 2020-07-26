@@ -39,4 +39,14 @@ public class WsFriendContent extends EventContent {
     public void setLocation(String location) {
         this.location = location;
     }
+
+    @Override
+    public String toString() {
+        return "WsFriendContent{" +
+                "userId='" + userId + '\'' +
+                ", canRequestInvite=" + canRequestInvite +
+                ", instance='" + instance + '\'' +
+                ", location='" + location + '\'' +
+                "} " + super.toString();
+    }
 }

@@ -93,6 +93,21 @@ public class WsNotificationContent extends EventContent {
         this.created_at = created_at;
     }
 
+    @Override
+    public String toString() {
+        return "WsNotificationContent{" +
+                "id='" + id + '\'' +
+                ", senderUserId='" + senderUserId + '\'' +
+                ", senderUsername='" + senderUsername + '\'' +
+                ", type='" + type + '\'' +
+                ", message='" + message + '\'' +
+                ", details=" + details +
+                ", seen='" + seen + '\'' +
+                ", created_at=" + created_at +
+                ", receiverUserId='" + receiverUserId + '\'' +
+                "} " + super.toString();
+    }
+
     public static class Details {
         private String worldId;
         private String worldName;
@@ -123,6 +138,15 @@ public class WsNotificationContent extends EventContent {
 
         public void setPlatform(String platform) {
             this.platform = platform;
+        }
+
+        @Override
+        public String toString() {
+            return "Details{" +
+                    "worldId='" + worldId + '\'' +
+                    ", worldName='" + worldName + '\'' +
+                    ", platform='" + platform + '\'' +
+                    '}';
         }
     }
 }

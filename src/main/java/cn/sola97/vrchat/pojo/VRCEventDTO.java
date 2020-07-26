@@ -80,4 +80,14 @@ public class VRCEventDTO<T> {
     public boolean isCreatedByFactory() {
         return typeReference == null;
     }
+
+    @Override
+    public String toString() {
+        return "VRCEventDTO{" +
+                "type=" + type +
+                ", content=" + content +
+                ", messages=" + messages +
+                ", typeReference=" + typeReference +
+                '}';
+    }
 }

@@ -76,7 +76,8 @@ public class MessageDTO {
     @Override
     public String toString() {
         return "MessageDTO{" +
-                "content='" + content + '\'' +
+                "type=" + type +
+                ", content='" + content + '\'' +
                 ", channelId='" + channelId + '\'' +
                 ", callback='" + callback + '\'' +
                 ", embedBuilder=" + embedBuilder +

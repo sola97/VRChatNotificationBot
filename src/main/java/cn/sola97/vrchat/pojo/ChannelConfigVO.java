@@ -13,5 +13,12 @@ public class ChannelConfigVO {
     public void setSubscribes(List<SubscribeDTO> subscribes) {
         this.subscribes = subscribes;
     }
+
+    @Override
+    public String toString() {
+        return "ChannelConfigVO{" +
+                "subscribes=" + subscribes +
+                '}';
+    }
 }
 
