@@ -163,15 +163,20 @@ public class MessageServiceImpl implements MessageService {
         String userUrl = user.getUsername().startsWith("steam_") ?
                 "https://steamcommunity.com/profiles/" + user.getUsername().replaceAll("steam_", "") : null;
         Integer friendIndex = user.getFriendIndex();
-        if (friendIndex == null) {
+        String indexString = "";
+        if (!user.getFriend()) {
+            indexString = "  [非好友]";
+        } else if (friendIndex == null) {
             friendIndex = cookieServiceImpl.getCurrentUserFriendIndex(user.getId());
         }
-        String index = (friendIndex == null) ? "" : "  [" + friendIndex + "]";
-        embedBuilder.setAuthor(user.getDisplayName() + index, userUrl, user.getCurrentAvatarThumbnailImageUrl());
+        if (friendIndex != null) {
+            indexString = "  [" + friendIndex + "]";
+        }
+        embedBuilder.setAuthor(user.getDisplayName() + indexString, userUrl, user.getCurrentAvatarThumbnailImageUrl());
         embedBuilder.setTimestamp(now);
-        if (user.getState() == null) {
+        if (!user.getFriend()) {
             //不是好友,看不到
-            embedBuilder.setFooter(" ", StateEnums.getUrlFromString("offline"));
+            embedBuilder.setFooter(" - ", StateEnums.getUrlFromString("offline"));
         } else if ("online".equals(user.getState())) {
             //用户正在游戏中status  joinme/active/busy
             embedBuilder.setFooter(String.join(" ", user.getStatus(), user.getStatusDescription()), StatusEnums.getUrlFromString(user.getStatus()));

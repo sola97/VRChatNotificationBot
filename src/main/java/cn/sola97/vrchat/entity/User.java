@@ -1,6 +1,7 @@
 package cn.sola97.vrchat.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.Date;
 import java.util.List;
@@ -22,6 +23,7 @@ public class User implements UserOnline {
     private Date last_login;
     private String last_platform;
     private Boolean allowAvatarCopying;
+    @JsonProperty("isFriend")
     private Boolean isFriend;
     private String friendKey;
     private String location;
