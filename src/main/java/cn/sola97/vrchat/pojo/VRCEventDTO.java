@@ -10,12 +10,15 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class VRCEventDTO<T> {
+    private static final Logger logger = LoggerFactory.getLogger(VRCEventDTO.class);
     private EventTypeEnums type;
     private T content;
     @JsonIgnore
@@ -30,6 +33,8 @@ public class VRCEventDTO<T> {
         } else if (type.startsWith("notification")) {
             typeReference = new TypeReference<WsNotificationContent>() {
             };
+        } else {
+            logger.warn("不支持的类型type：{}", type);
         }
         this.setType(type);
     }
@@ -50,6 +55,9 @@ public class VRCEventDTO<T> {
         if (content.equals("")) return;
         ObjectMapper objectMapper = new ObjectMapper();
         content = content.replaceAll(",\"details\":\"\\{}\"", "");
+        if (typeReference == null) {
+            logger.warn("不支持的类型content：{}", content);
+        }
         this.content = (T) objectMapper.readValue(content, typeReference);
     }
 
