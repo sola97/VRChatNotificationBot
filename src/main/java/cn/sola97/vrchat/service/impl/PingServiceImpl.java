@@ -1,18 +1,23 @@
 package cn.sola97.vrchat.service.impl;
 
+import cn.sola97.vrchat.entity.Channel;
 import cn.sola97.vrchat.entity.Ping;
 import cn.sola97.vrchat.entity.PingExample;
 import cn.sola97.vrchat.mapper.PingMapper;
+import cn.sola97.vrchat.service.ChannelService;
 import cn.sola97.vrchat.service.PingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class PingServiceImpl implements PingService {
     @Autowired
     PingMapper pingMapper;
+    @Autowired
+    ChannelService channelServiceImpl;
     @Override
     public List<Ping> selPingByChannelIdAndUserId(String channelId,String usrId){
         PingExample example = new PingExample();
@@ -83,8 +88,9 @@ public class PingServiceImpl implements PingService {
 
     @Override
     public List<Ping> selAllPingNotInUsrIdList(List<String> usrIds) {
+        List<String> channels = channelServiceImpl.selDisabledChannel().stream().map(Channel::getChannelId).collect(Collectors.toList());
         PingExample example = new PingExample();
-        example.createCriteria().andUsrIdNotIn(usrIds).andDisabledEqualTo(false);
+        example.createCriteria().andChannelIdNotIn(channels).andUsrIdNotIn(usrIds).andDisabledEqualTo(false);
         return pingMapper.selectByExample(example);
     }
 }

@@ -42,6 +42,7 @@ public class ScheduledServiceImpl implements ScheduledService {
     private final JDAProxy jda;
     private final ChannelService channelServiceImpl;
     private final SubscribeService subscribeServiceImpl;
+    private final CookieService cookieServiceImpl;
     private Long checkOnlinePeriod;
     private Long checkChannelPeriod;
     private Long checkNonFriendPeriod;
@@ -53,11 +54,13 @@ public class ScheduledServiceImpl implements ScheduledService {
                                 Executor asyncExecutor, EventHandlerMapping eventHandlerMapping,
                                 ChannelService channelServiceImpl,
                                 SubscribeService subscribeServiceImpl,
+                                CookieService cookieServiceImpl,
                                 @Value("${scheduled.checkOnline.period}") final Long checkOnlinePeriod,
                                 @Value("${scheduled.checkChannel.period}") final Long checkChannelPeriod,
                                 @Value("${scheduled.checkNonfriend.period}") final Long checkNonFriendPeriod) {
         this.pingServiceImpl = pingServiceImpl;
         this.subscribeServiceImpl = subscribeServiceImpl;
+        this.cookieServiceImpl = cookieServiceImpl;
         this.checkOnlinePeriod = checkOnlinePeriod;
         this.checkChannelPeriod = checkChannelPeriod;
         this.jda = jda;
@@ -274,14 +277,10 @@ public class ScheduledServiceImpl implements ScheduledService {
     private void checkNonFriendAvatar() {
         scheduledExecutorService.scheduleAtFixedRate(() -> {
             logger.info("checking non-friend avatar...");
-            List<UserOnline> allFriends = new ArrayList<>();
-            allFriends.addAll(vrchatApiServiceImpl.getFriendsWithCache(true));
-            allFriends.addAll(vrchatApiServiceImpl.getFriendsWithCache(false));
-            List<String> friendUserIds = allFriends.stream().map(UserOnline::getId).collect(Collectors.toList());
+            List<String> friendUserIds = cookieServiceImpl.getCurrentUser().getFriends();
             friendUserIds.add("*");
             logger.info("获取到好友总数：{}", friendUserIds.size());
             List<Subscribe> subscribes = subscribeServiceImpl.selAllSubscribesNotInUsrIdList(friendUserIds);
-
             List<Ping> pings = pingServiceImpl.selAllPingNotInUsrIdList(friendUserIds);
             logger.debug("获取到非好友subscribes记录：{}", subscribes.size());
             logger.debug("获取到非好友pings记录：{}", pings.size());

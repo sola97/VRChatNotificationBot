@@ -1,5 +1,6 @@
 package cn.sola97.vrchat.service.impl;
 
+import cn.sola97.vrchat.entity.Channel;
 import cn.sola97.vrchat.entity.Subscribe;
 import cn.sola97.vrchat.entity.SubscribeExample;
 import cn.sola97.vrchat.mapper.SubscribeMapper;
@@ -11,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class SubscribeServiceImpl implements SubscribeService {
@@ -98,8 +100,9 @@ public class SubscribeServiceImpl implements SubscribeService {
 
     @Override
     public List<Subscribe> selAllSubscribesNotInUsrIdList(List<String> usrIds) {
+        List<String> channels = channelServiceImpl.selDisabledChannel().stream().map(Channel::getChannelId).collect(Collectors.toList());
         SubscribeExample example = new SubscribeExample();
-        example.createCriteria().andUsrIdNotIn(usrIds).andDisabledEqualTo(false);
+        example.createCriteria().andChannelIdNotIn(channels).andUsrIdNotIn(usrIds).andDisabledEqualTo(false);
         return subscribeMapper.selectByExample(example);
     }
 
