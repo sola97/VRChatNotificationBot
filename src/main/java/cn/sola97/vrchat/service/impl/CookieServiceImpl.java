@@ -156,14 +156,16 @@ public class CookieServiceImpl implements CookieService {
 
     @Override
     public Integer getCurrentUserFriendIndex(String usrId) {
+        Integer index = null;
         if (friendsIndexMap != null && !friendsIndexMap.isEmpty()) {
-            return 1 + friendsIndexMap.getOrDefault(usrId, null);
+            index = friendsIndexMap.getOrDefault(usrId, null);
         } else if (redisTemplate.hasKey(currentUserFriendsKey)) {
             List<String> friends = (List<String>) redisTemplate.opsForList().range(currentUserFriendsKey, 0, -1);
             logger.info("从缓存中查询到好友列表 size:", friends.size());
             friendsIndexMap = convertFriendListToMap(friends);
-            return 1 + friendsIndexMap.getOrDefault(usrId, null);
+            index = friendsIndexMap.getOrDefault(usrId, null);
         }
+        if (index != null) return index + 1;
         return null;
     }
 
