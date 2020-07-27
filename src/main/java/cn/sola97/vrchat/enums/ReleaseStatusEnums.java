@@ -36,6 +36,7 @@ public enum ReleaseStatusEnums {
         } else if ("private".equals(location)) {
             map.put("worldId", "private");
         }
+        map.put("username", "");
         return map;
     }
     public static String getTextByString(String str){

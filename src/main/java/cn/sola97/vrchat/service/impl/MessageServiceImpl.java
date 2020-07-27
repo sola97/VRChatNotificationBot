@@ -155,8 +155,6 @@ public class MessageServiceImpl implements MessageService {
         Map<String, String> locationMap = ReleaseStatusEnums.parseLocation(user.getLocation());
         if (locationMap.get("usrId") != null)
             locationMap.put("username", vrchatApiServiceImpl.getUserById(locationMap.get("usrId"), true).getDisplayName());
-        else
-            locationMap.put("username", "");
         Instant now = Instant.now();
         EmbedBuilder embedBuilder = new EmbedBuilder();
         embedBuilder.setColor(TrustCorlorEnums.getByTags(user.getTags()));

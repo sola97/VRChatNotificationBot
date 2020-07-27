@@ -182,6 +182,10 @@ public class ScheduledServiceImpl implements ScheduledService {
                         Map<String, String> oldLocationMap = ReleaseStatusEnums.parseLocation(cachedUser.getLocation());
                         World newWorld = vrchatApiServiceImpl.getWorldById(newLocationMap.get("worldId"), true);
                         World oldWorld = vrchatApiServiceImpl.getWorldById(oldLocationMap.get("worldId"), true);
+                        if (oldLocationMap.get("usrId") != null)
+                            oldLocationMap.put("username", vrchatApiServiceImpl.getUserById(oldLocationMap.get("usrId"), true).getDisplayName());
+                        if (newLocationMap.get("usrId") != null)
+                            newLocationMap.put("username", vrchatApiServiceImpl.getUserById(newLocationMap.get("usrId"), true).getDisplayName());
                         VRCEventDTO<WsFriendContent> event = VRCEventDTOFactory.createLocationEvent((User) onlineUser, newWorld);
                         logger.info("轮询-好友：{}更换了地图 {} -> {}", cachedUser.getDisplayName(),
                                 WorldUtil.convertToStringOneLine(oldWorld, oldLocationMap),
