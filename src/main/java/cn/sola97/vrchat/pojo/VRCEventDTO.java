@@ -21,12 +21,14 @@ public class VRCEventDTO<T> {
     private static final Logger logger = LoggerFactory.getLogger(VRCEventDTO.class);
     private EventTypeEnums type;
     private T content;
+    private Boolean manuualCreated;
     @JsonIgnore
     private List<MessageDTO> messages = new ArrayList<>();
     private TypeReference typeReference;
 
     @JsonCreator
     public VRCEventDTO(@JsonProperty("type") String type) {
+        manuualCreated = false;
         if (type.startsWith("friend") || type.startsWith("user")) {
             typeReference = new TypeReference<WsFriendContent>() {
             };
@@ -39,8 +41,8 @@ public class VRCEventDTO<T> {
         this.setType(type);
     }
 
-    public VRCEventDTO() {
-
+    public VRCEventDTO(Boolean manuualCreated) {
+        this.manuualCreated = manuualCreated;
     }
 
     public T getContent() {
@@ -89,11 +91,20 @@ public class VRCEventDTO<T> {
         return typeReference == null;
     }
 
+    public Boolean getManuualCreated() {
+        return manuualCreated;
+    }
+
+    public void setManuualCreated(Boolean manuualCreated) {
+        this.manuualCreated = manuualCreated;
+    }
+
     @Override
     public String toString() {
         return "VRCEventDTO{" +
                 "type=" + type +
                 ", content=" + content +
+                ", manuualCreated=" + manuualCreated +
                 ", messages=" + messages +
                 ", typeReference=" + typeReference +
                 '}';

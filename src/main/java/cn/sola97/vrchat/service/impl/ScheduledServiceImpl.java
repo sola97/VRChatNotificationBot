@@ -118,7 +118,7 @@ public class ScheduledServiceImpl implements ScheduledService {
                     count++;
                 }
             } catch (Exception e) {
-                logger.error(e.getMessage());
+                logger.error("websocketWatchdog error", e);
             }
         }, 10, 5, TimeUnit.SECONDS);
     }
@@ -126,10 +126,10 @@ public class ScheduledServiceImpl implements ScheduledService {
     private void messageQueueWatchDog() {
         scheduledExecutorService.scheduleWithFixedDelay(() -> {
             try {
-                logger.debug("messageQueue current size:" + (messageServiceImpl.getMessageQueueSize()));
+                logger.debug("messageQueue current size:{}", messageServiceImpl.getMessageQueueSize());
                 int count = 0;
                 while (messageServiceImpl.getMessageQueueSize() > 0) {
-                    logger.warn("messageQueue current size:" + (messageServiceImpl.getMessageQueueSize()) + "." + count + " seconds have passed.");
+                    logger.warn("messageQueue current size:{}. {} seconds have passed.", messageServiceImpl.getMessageQueueSize(), count);
                     if (count >= 30) {
                         jda.rebuild();
                         break;
@@ -154,56 +154,77 @@ public class ScheduledServiceImpl implements ScheduledService {
     }
 
     private void checkOnlineUsers() {
-        logger.info("开始在线好友状态检查...");
+
         scheduledExecutorService.scheduleAtFixedRate(() -> {
-            CompletableFuture.supplyAsync(() -> vrchatApiServiceImpl.getFriends(false), asyncExecutor)
-                    .thenAccept(onlineFriends -> {
-                        Integer count = 0;
-                        for (UserOnline onlineUser : onlineFriends) {
-                            UserOnline cachedUser = cacheServiceImpl.getOnlineUser(onlineUser.getId());
-                            cacheServiceImpl.setUserOnline(onlineUser);
-                            String worldId = ReleaseStatusEnums.parseLocation(onlineUser.getLocation()).get("worldId");
-
-                            if (cachedUser == null) {
-                                World world = vrchatApiServiceImpl.getWorldById(worldId, true);
-                                VRCEventDTO<WsFriendContent> event = VRCEventDTOFactory.createOnlineEvent((User) onlineUser, world);
-                                logger.info("轮询-好友：没有获取到好友{} 的缓存数据，发送上线通知", onlineUser.getDisplayName());
-                                eventHandlerMapping.friendOnline(event);
-                                count++;
-                                continue;
-                            }
-                            if (!cachedUser.getLocation().equals(onlineUser.getLocation())) {
-
-                                Map<String, String> newLocationMap = ReleaseStatusEnums.parseLocation(onlineUser.getLocation());
-                                Map<String, String> oldLocationMap = ReleaseStatusEnums.parseLocation(cachedUser.getLocation());
-                                World newWorld = vrchatApiServiceImpl.getWorldById(newLocationMap.get("worldId"), true);
-                                World oldWorld = vrchatApiServiceImpl.getWorldById(oldLocationMap.get("worldId"), true);
-                                VRCEventDTO<WsFriendContent> event = VRCEventDTOFactory.createLocationEvent((User) onlineUser, newWorld);
-                                logger.info("轮询-好友：{}进入了更换了地图 {} -> {}", cachedUser.getDisplayName(),
-                                        WorldUtil.convertToString(oldWorld, oldLocationMap),
-                                        WorldUtil.convertToString(newWorld, newLocationMap));
-                                eventHandlerMapping.friendLocation(event);
-                                count++;
-                            }
-                            if (!cachedUser.getCurrentAvatarImageUrl().equals(onlineUser.getCurrentAvatarImageUrl()) ||
-                                    !cachedUser.getCurrentAvatarThumbnailImageUrl().equals(onlineUser.getCurrentAvatarThumbnailImageUrl())) {
-                                World world = vrchatApiServiceImpl.getWorldById(worldId, true);
-                                VRCEventDTO<WsFriendContent> event = VRCEventDTOFactory.createUpdateEvent((User) onlineUser, world);
-                                logger.info("轮询-好友：{}更换了角色 {} -> {}", cachedUser.getDisplayName(), cachedUser.getCurrentAvatarImageUrl(), onlineUser.getCurrentAvatarImageUrl());
-                                eventHandlerMapping.friendAvatar(event);
-                                count++;
-
-                            }
-                            if (!cachedUser.getStatusDescription().equals(onlineUser.getStatusDescription())) {
-                                World world = vrchatApiServiceImpl.getWorldById(worldId, true);
-                                VRCEventDTO<WsFriendContent> event = VRCEventDTOFactory.createUpdateEvent((User) onlineUser, world);
-                                logger.info("轮询-好友：{}更换了描述 {} -> {}", cachedUser.getDisplayName(), cachedUser.getStatusDescription(), onlineUser.getStatusDescription());
-                                eventHandlerMapping.friendDescription(event);
-                                count++;
-                            }
+            logger.info("开始在线好友状态检查...");
+            List<UserOnline> friends = vrchatApiServiceImpl.getFriends(false);
+            List<CompletableFuture<Integer>> futures = new ArrayList<>();
+            for (UserOnline onlineUser : friends) {
+                CompletableFuture<Integer> future = CompletableFuture.supplyAsync(() -> {
+                    int count = 0;
+                    UserOnline cachedUser = cacheServiceImpl.getOnlineUser(onlineUser.getId());
+                    cacheServiceImpl.setUserOnline(onlineUser);
+                    String worldId = ReleaseStatusEnums.parseLocation(onlineUser.getLocation()).get("worldId");
+                    if (cachedUser == null) {
+                        World world = vrchatApiServiceImpl.getWorldById(worldId, true);
+                        VRCEventDTO<WsFriendContent> event = VRCEventDTOFactory.createOnlineEvent((User) onlineUser, world);
+                        logger.info("轮询-好友：没有获取到好友{} 的缓存数据，发送上线通知", onlineUser.getDisplayName());
+                        try {
+                            eventHandlerMapping.friendOnline(event);
+                        } catch (Exception e) {
+                            logger.error("error:{}", onlineUser.getDisplayName(), e);
                         }
-                        logger.info("结束在线好友状态检查 总事件数：{}", count);
-                    });
+                        count++;
+                    }
+                    if (!cachedUser.getLocation().equals(onlineUser.getLocation())) {
+
+                        Map<String, String> newLocationMap = ReleaseStatusEnums.parseLocation(onlineUser.getLocation());
+                        Map<String, String> oldLocationMap = ReleaseStatusEnums.parseLocation(cachedUser.getLocation());
+                        World newWorld = vrchatApiServiceImpl.getWorldById(newLocationMap.get("worldId"), true);
+                        World oldWorld = vrchatApiServiceImpl.getWorldById(oldLocationMap.get("worldId"), true);
+                        VRCEventDTO<WsFriendContent> event = VRCEventDTOFactory.createLocationEvent((User) onlineUser, newWorld);
+                        logger.info("轮询-好友：{}更换了地图 {} -> {}", cachedUser.getDisplayName(),
+                                WorldUtil.convertToStringOneLine(oldWorld, oldLocationMap),
+                                WorldUtil.convertToStringOneLine(newWorld, newLocationMap));
+                        eventHandlerMapping.friendLocation(event);
+                        count++;
+                    }
+                    if (!cachedUser.getCurrentAvatarImageUrl().equals(onlineUser.getCurrentAvatarImageUrl()) ||
+                            !cachedUser.getCurrentAvatarThumbnailImageUrl().equals(onlineUser.getCurrentAvatarThumbnailImageUrl())) {
+                        World world = vrchatApiServiceImpl.getWorldById(worldId, true);
+                        VRCEventDTO<WsFriendContent> event = VRCEventDTOFactory.createUpdateEvent((User) onlineUser, world);
+                        logger.info("轮询-好友：{}更换了角色 {} -> {}", cachedUser.getDisplayName(), cachedUser.getCurrentAvatarImageUrl(), onlineUser.getCurrentAvatarImageUrl());
+                        eventHandlerMapping.friendAvatar(event);
+                        count++;
+
+                    }
+                    if (!cachedUser.getStatusDescription().equals(onlineUser.getStatusDescription())) {
+                        World world = vrchatApiServiceImpl.getWorldById(worldId, true);
+                        VRCEventDTO<WsFriendContent> event = VRCEventDTOFactory.createUpdateEvent((User) onlineUser, world);
+                        logger.info("轮询-好友：{}更换了描述 {} -> {}", cachedUser.getDisplayName(), cachedUser.getStatusDescription(), onlineUser.getStatusDescription());
+                        eventHandlerMapping.friendDescription(event);
+                        count++;
+                    }
+                    return count;
+                }, asyncExecutor);
+                futures.add(future);
+            }
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).exceptionally(ex -> {
+                logger.error("error on showuser:" + ex.getMessage());
+                return null;
+            }).join();
+
+            Map<Boolean, List<CompletableFuture<Integer>>> result = futures.stream().collect(Collectors.partitioningBy(CompletableFuture::isCompletedExceptionally));
+            ArrayList<Integer> counts = new ArrayList<>();
+            for (CompletableFuture<Integer> completableFuture : result.get(Boolean.FALSE)) {
+                try {
+                    counts.add(completableFuture.get());
+                } catch (Exception e) {
+                    logger.error("completableFutur.get counts failed." + e.getMessage());
+                }
+            }
+            int sum = counts.stream().mapToInt(Integer::intValue).sum();
+            logger.info("结束在线好友状态检查 总事件数：{}", sum);
         }, 0, checkOnlinePeriod, TimeUnit.SECONDS);
     }
 

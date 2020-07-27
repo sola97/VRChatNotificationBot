@@ -39,14 +39,21 @@ public class CacheCheckAspect {
         String userId = event.getContent().getUserId();
         User user = event.getContent().getUser();
         UserOnline cachedUser = cacheServiceImpl.getOnlineUser(userId);
-
+        String prefix = "";
+        if (Boolean.TRUE.equals(event.getManuualCreated())) {
+            prefix = "轮询-好友：";
+        }
+        String name = prefix + event.getContent().getUser().getDisplayName();
         switch (event.getType()) {
             case ONLINE:
-                if (cachedUser == null)
+                if (cachedUser == null) {
                     //更新缓存，然后通知
+                    logger.info("{}在缓存中不存在，设置上线通知", name);
                     cacheServiceImpl.setUserOnline(user);
-                else
+                } else {
+                    logger.info("{}在缓存中已存在，跳过上线通知", name);
                     return;
+                }
                 break;
             case OFFLINE:
                 //删除缓存
@@ -55,14 +62,17 @@ public class CacheCheckAspect {
             case LOCATION:
                 if (cachedUser == null) {
                     //改为上线通知
+                    logger.info("{} 在缓存中不存在，设置换地图通知为上线通知", name);
                     event.setType(EventTypeEnums.ONLINE);
                     eventHandlerMapping.friendOnline(event);
                     return;
-                } else if (event.getContent().getLocation().equals(Optional.of(cachedUser).map(UserOnline::getLocation).orElse("")))
+                } else if (event.getContent().getLocation().equals(Optional.of(cachedUser).map(UserOnline::getLocation).orElse(""))) {
                     //无变化的跳过
+                    logger.info("{} Location没有变化，跳过换地图通知", name);
                     return;
-                else {
+                } else {
                     //更新缓存继续通知
+                    logger.info("{} 更新缓存并发送换地图通知", name);
                     cacheServiceImpl.setUserOnline(event.getContent().getUser());
                 }
                 break;

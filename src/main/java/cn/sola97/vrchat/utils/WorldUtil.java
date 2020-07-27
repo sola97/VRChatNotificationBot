@@ -26,7 +26,7 @@ public class WorldUtil {
         return value.toString();
     }
 
-    public static String convertToString(World world, Map<String, String> locationMap) {
-        return convertToString(world, locationMap, null);
+    public static String convertToStringOneLine(World world, Map<String, String> locationMap) {
+        return convertToString(world, locationMap, null).replaceAll("\n", "");
     }
 }

@@ -38,8 +38,6 @@ public class VRChatApiServiceImpl implements VRChatApiService {
     Executor asyncExecutor;
     @Value("${cache.friends}")
     String friendsCacheKey;
-    @Value("${cache.currentUser}")
-    String currentUserCacheKey;
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 0))
     @Override
@@ -131,15 +129,16 @@ public class VRChatApiServiceImpl implements VRChatApiService {
     @Override
     public CurrentUser getCurrentUserDetails(Boolean withCache) {
         if (withCache) {
-            Object user = cacheServiceImpl.get(currentUserCacheKey);
-            if (user != null && ((CurrentUser) user).getId() != null) {
-                return (CurrentUser) user;
+            CurrentUser user = cookieServiceImpl.getCurrentUser();
+            if (user != null && user.getId() != null) {
+                return user;
             }
         }
         String uri = "/auth/user";
         CurrentUser currentUser = apiRestTemplate.getForObject(uri, CurrentUser.class);
-        assert currentUser.getId() != null;
-        cacheServiceImpl.set(currentUserCacheKey, currentUser);
+        assert currentUser != null && currentUser.getId() != null;
+        cookieServiceImpl.setCurrentUser(currentUser);
+        cookieServiceImpl.setCurrentUserFriendList(currentUser.getFriends());
         return currentUser;
     }
 

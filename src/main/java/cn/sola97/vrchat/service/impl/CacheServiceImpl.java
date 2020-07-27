@@ -15,10 +15,6 @@ import java.util.concurrent.TimeUnit;
 public class CacheServiceImpl implements CacheService {
     @Autowired
     RedisTemplate redisTemplate;
-    @Value("${cache.friends}")
-    String friendsCacheKey;
-    @Value("${cache.currentUser}")
-    String currentUserCacheKey;
     @Value("${cache.expire}")
     int seconds;
     @Value("${cache.world}")
@@ -57,12 +53,6 @@ public class CacheServiceImpl implements CacheService {
     @Override
     public boolean exsits(String key) {
         return redisTemplate.hasKey(key);
-    }
-
-    @Override
-    public void clearCache() {
-        redisTemplate.delete(friendsCacheKey);
-        redisTemplate.delete(currentUserCacheKey);
     }
 
     @Override

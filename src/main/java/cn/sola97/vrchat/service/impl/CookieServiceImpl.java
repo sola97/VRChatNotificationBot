@@ -17,6 +17,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.net.Proxy;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class CookieServiceImpl implements CookieService {
@@ -37,6 +38,8 @@ public class CookieServiceImpl implements CookieService {
     String currentUserKey;
     @Value("${vrchat.currentUserName}")
     String currentUserNameKey;
+    @Value("${vrchat.currentUserFriends.expire}")
+    Long currentUserFriendsExpire;
     @Value("${vrchat.api.proxy:}")
     String proxyString;
     @Autowired
@@ -72,10 +75,15 @@ public class CookieServiceImpl implements CookieService {
         return cookies;
     }
 
-    private void setCurrentUserFriendList(List<String> friends) {
+    @Override
+    public void setCurrentUserFriendList(List<String> friends) {
         logger.info("更新用户好友列表");
         try {
+            if (redisTemplate.hasKey(currentUserFriendsKey)) {
+                redisTemplate.delete(currentUserFriendsKey);
+            }
             redisTemplate.opsForList().rightPushAll(currentUserFriendsKey, friends);
+            redisTemplate.expire(currentUserFriendsKey, currentUserFriendsExpire, TimeUnit.SECONDS);
         } catch (Exception e) {
             logger.error("setCurrentUserFriendList", e);
         }
@@ -100,7 +108,8 @@ public class CookieServiceImpl implements CookieService {
         redisTemplate.opsForValue().set(currentUserIdKey, userId);
     }
 
-    private void setCurrentUser(CurrentUser user) {
+    @Override
+    public void setCurrentUser(CurrentUser user) {
         logger.info("更新存储的用户");
         redisTemplate.opsForValue().set(currentUserKey, user);
     }
@@ -161,8 +170,11 @@ public class CookieServiceImpl implements CookieService {
             index = friendsIndexMap.getOrDefault(usrId, null);
         } else if (redisTemplate.hasKey(currentUserFriendsKey)) {
             List<String> friends = (List<String>) redisTemplate.opsForList().range(currentUserFriendsKey, 0, -1);
-            logger.info("从缓存中查询到好友列表 size:", friends.size());
+            logger.info("从缓存中查询到好友列表 size:{}", friends.size());
             friendsIndexMap = convertFriendListToMap(friends);
+            index = friendsIndexMap.getOrDefault(usrId, null);
+        } else {
+            authenticate();
             index = friendsIndexMap.getOrDefault(usrId, null);
         }
         if (index != null) return index + 1;

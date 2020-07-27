@@ -1,15 +1,18 @@
 package cn.sola97.vrchat.aop.handler;
 
 import cn.sola97.vrchat.service.CookieService;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.ResponseErrorHandler;
 
 import java.io.IOException;
+import java.net.URI;
 
 @Component
 public class ApiErrorHandler implements ResponseErrorHandler {
@@ -29,9 +32,14 @@ public class ApiErrorHandler implements ResponseErrorHandler {
     }
 
     @Override
-    public void handleError(ClientHttpResponse clientHttpResponse) throws IOException {
-        logger.error(clientHttpResponse.getRawStatusCode() + clientHttpResponse.getRawStatusCode() + "");
-        logger.error(clientHttpResponse.getHeaders().toString());
-        logger.error(clientHttpResponse.getBody().toString());
+    public void handleError(@NotNull ClientHttpResponse clientHttpResponse) throws IOException {
+
     }
+
+    @Override
+    public void handleError(URI url, HttpMethod method, ClientHttpResponse response) throws IOException {
+        logger.error("HTTP {} url:{} method:{}", response.getStatusCode(), url, method);
+        handleError(response);
+    }
+
 }

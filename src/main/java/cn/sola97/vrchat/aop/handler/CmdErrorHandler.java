@@ -1,5 +1,6 @@
 package cn.sola97.vrchat.aop.handler;
 
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpMethod;
@@ -25,15 +26,12 @@ public class CmdErrorHandler implements ResponseErrorHandler {
     }
 
     @Override
-    public void handleError(ClientHttpResponse clientHttpResponse) throws IOException {
-        logger.error(clientHttpResponse.getRawStatusCode() + clientHttpResponse.getRawStatusCode() + "");
-        logger.error(clientHttpResponse.getHeaders().toString());
-        logger.error(clientHttpResponse.getBody().toString());
+    public void handleError(@NotNull ClientHttpResponse clientHttpResponse) throws IOException {
     }
 
     @Override
     public void handleError(URI url, HttpMethod method, ClientHttpResponse response) throws IOException {
-        logger.error("Reponse error:" + method.name() + "  " + url);
+        logger.error("Reponse error url:{} method:{}", url, method);
         handleError(response);
     }
 }

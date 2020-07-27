@@ -13,8 +13,6 @@ public interface CacheService {
 
     boolean exsits(String key);
 
-    void clearCache();
-
     World getWorldCache(String id);
 
     void setWorldCache(World world);

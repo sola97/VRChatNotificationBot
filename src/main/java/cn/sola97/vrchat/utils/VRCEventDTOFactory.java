@@ -8,7 +8,7 @@ import cn.sola97.vrchat.pojo.impl.WsFriendContent;
 
 public class VRCEventDTOFactory {
     public static VRCEventDTO<WsFriendContent> createOfflineEvent(String usrId) {
-        VRCEventDTO<WsFriendContent> event = new VRCEventDTO<>();
+        VRCEventDTO<WsFriendContent> event = new VRCEventDTO<>(true);
         event.setType(EventTypeEnums.OFFLINE);
         WsFriendContent content = new WsFriendContent();
         content.setUserId(usrId);
@@ -17,21 +17,21 @@ public class VRCEventDTOFactory {
     }
 
     public static VRCEventDTO<WsFriendContent> createOnlineEvent(User user, World world) {
-        VRCEventDTO<WsFriendContent> event = new VRCEventDTO<>();
+        VRCEventDTO<WsFriendContent> event = new VRCEventDTO<>(true);
         event.setType(EventTypeEnums.ONLINE);
         event.setContent(createContent(user, world));
         return event;
     }
 
     public static VRCEventDTO<WsFriendContent> createLocationEvent(User user, World world) {
-        VRCEventDTO<WsFriendContent> event = new VRCEventDTO<>();
+        VRCEventDTO<WsFriendContent> event = new VRCEventDTO<>(true);
         event.setType(EventTypeEnums.LOCATION);
         event.setContent(createContent(user, world));
         return event;
     }
 
     public static VRCEventDTO<WsFriendContent> createUpdateEvent(User user, World world) {
-        VRCEventDTO<WsFriendContent> event = new VRCEventDTO<>();
+        VRCEventDTO<WsFriendContent> event = new VRCEventDTO<>(true);
         event.setType(EventTypeEnums.UPDATE);
         event.setContent(createContent(user, world));
         return event;
