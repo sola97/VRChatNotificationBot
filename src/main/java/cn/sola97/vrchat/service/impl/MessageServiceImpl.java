@@ -21,13 +21,11 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Nullable;
-import javax.annotation.Resource;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.BlockingQueue;
 import java.util.stream.Collectors;
 
 @Service
@@ -45,8 +43,6 @@ public class MessageServiceImpl implements MessageService {
     QueueConfig queueConfig;
     @Autowired
     CookieService cookieServiceImpl;
-    @Resource
-    private BlockingQueue<MessageDTO> messageBlockingQueue;
     @Autowired
     VRChatApiService vrchatApiServiceImpl;
 
@@ -189,21 +185,14 @@ public class MessageServiceImpl implements MessageService {
 
     @Override
     public Long enqueueMessages(List<MessageDTO> messages) {
-        Long index = (long) 0;
-        for (MessageDTO message : messages) {
-            try {
-                messageBlockingQueue.put(message);
-                index++;
-            } catch (Exception e) {
-                logger.error("入队出错 message.toString():" + message.toString(), e);
-            }
-        }
-        logger.debug("入队：" + index + " Queue size：" + messageBlockingQueue.size());
-        return index;
+        Long count = (long) 0;
+        count = redisTemplate.opsForList().rightPushAll(messageQueueKey, messages);
+        logger.debug("入队：" + count + " Queue size：" + getMessageQueueSize());
+        return count;
     }
 
     @Override
-    public int getMessageQueueSize() {
-        return messageBlockingQueue.size();
+    public Long getMessageQueueSize() {
+        return redisTemplate.opsForList().size(messageQueueKey);
     }
 }

@@ -23,5 +23,5 @@ public interface MessageService {
 
     Long enqueueMessages(List<MessageDTO> queue);
 
-    int getMessageQueueSize();
+    Long getMessageQueueSize();
 }

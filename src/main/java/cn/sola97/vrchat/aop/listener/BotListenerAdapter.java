@@ -13,18 +13,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Resource;
 import java.util.Optional;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 @Component
 public class BotListenerAdapter extends ListenerAdapter {
     private final static Logger logger = LoggerFactory.getLogger(BotListenerAdapter.class);
-    @Resource
-    LinkedBlockingQueue<MessageDTO> messageBlockingQueue;
+    @Autowired
+    RedisTemplate redisTemplate;
     @Value("${bot.messageQueueKey}")
     String messageKey;
     @Autowired
@@ -39,7 +39,7 @@ public class BotListenerAdapter extends ListenerAdapter {
         new Thread(() -> {
             while (jda.getStatus().equals(JDA.Status.CONNECTED)) {
                 try {
-                    MessageDTO message = messageBlockingQueue.take();
+                    MessageDTO message = (MessageDTO) redisTemplate.opsForList().leftPop(messageKey, 86400, TimeUnit.SECONDS);
                     MessageEmbed embed = Optional.ofNullable(message.getEmbedBuilder()).map(EmbedBuilder::build).orElse(null);
                     String content = message.getContent();
                     String channelId = message.getChannelId();
@@ -93,9 +93,9 @@ public class BotListenerAdapter extends ListenerAdapter {
                             + Optional.ofNullable(message.getEmbedBuilder()).map(EmbedBuilder::getFields).filter(fields -> fields.size() > 0).map(m -> m.get(0).getName() + " ").orElse("")
                             + Optional.ofNullable(message.getEmbedBuilder()).map(EmbedBuilder::getFields).filter(fields -> fields.size() > 0).map(m -> m.get(0).getValue().replaceAll("\n", " ")).orElse(""));
                     try {
-                        messageBlockingQueue.put(message);
-                    } catch (InterruptedException e) {
-                        logger.error("发送出错 message:{} content:{} channelId:{}", message.toString(), content, channelId, e);
+                        redisTemplate.opsForList().leftPush(messageKey, message);
+                    } catch (Exception e) {
+                        logger.error("重新放入Message出错 message:{} content:{} channelId:{}", message.toString(), content, channelId, e);
                     }
                 });
     }
