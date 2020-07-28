@@ -174,7 +174,7 @@ public class ScheduledServiceImpl implements ScheduledService {
             return count;
         }
         cacheServiceImpl.setUserOnline(onlineUser);
-        if (!cachedUser.getLocation().equals(onlineUser.getLocation())) {
+        if (cachedUser.getLocation() != null && !cachedUser.getLocation().equals(onlineUser.getLocation())) {
             Map<String, String> newLocationMap = ReleaseStatusEnums.parseLocation(onlineUser.getLocation());
             Map<String, String> oldLocationMap = ReleaseStatusEnums.parseLocation(cachedUser.getLocation());
             World newWorld = vrchatApiServiceImpl.getWorldById(newLocationMap.get("worldId"), true);
@@ -190,8 +190,10 @@ public class ScheduledServiceImpl implements ScheduledService {
             eventHandlerMapping.friendLocation(event);
             count++;
         }
-        if (!cachedUser.getCurrentAvatarImageUrl().equals(onlineUser.getCurrentAvatarImageUrl()) ||
-                !cachedUser.getCurrentAvatarThumbnailImageUrl().equals(onlineUser.getCurrentAvatarThumbnailImageUrl())) {
+        if (cachedUser.getCurrentAvatarThumbnailImageUrl() != null &&
+                cachedUser.getCurrentAvatarThumbnailImageUrl() != null &&
+                (!cachedUser.getCurrentAvatarImageUrl().equals(onlineUser.getCurrentAvatarImageUrl()) ||
+                        !cachedUser.getCurrentAvatarThumbnailImageUrl().equals(onlineUser.getCurrentAvatarThumbnailImageUrl()))) {
             World world = vrchatApiServiceImpl.getWorldById(worldId, true);
             VRCEventDTO<WsFriendContent> event = VRCEventDTOFactory.createUpdateEvent((User) onlineUser, world);
             logger.info("轮询-好友：{}更换了角色 {} -> {}", cachedUser.getDisplayName(), cachedUser.getCurrentAvatarImageUrl(), onlineUser.getCurrentAvatarImageUrl());
@@ -199,7 +201,7 @@ public class ScheduledServiceImpl implements ScheduledService {
             count++;
 
         }
-        if (!cachedUser.getStatusDescription().equals(onlineUser.getStatusDescription())) {
+        if (cachedUser.getStatusDescription() != null && !cachedUser.getStatusDescription().equals(onlineUser.getStatusDescription())) {
             World world = vrchatApiServiceImpl.getWorldById(worldId, true);
             VRCEventDTO<WsFriendContent> event = VRCEventDTOFactory.createUpdateEvent((User) onlineUser, world);
             logger.info("轮询-好友：{}更换了描述 {} -> {}", cachedUser.getDisplayName(), cachedUser.getStatusDescription(), onlineUser.getStatusDescription());
