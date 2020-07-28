@@ -64,7 +64,7 @@ public class ReflectionUtil {
         } catch (IllegalAccessException e) {
             logger.error("Access MessageHeader失败", e);
         } catch (ClassNotFoundException e) {
-            e.printStackTrace();
+            logger.error("getMessageHeader", e);
         }
         return null;
     }
