@@ -10,6 +10,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
@@ -38,6 +42,15 @@ public class VRChatApiServiceImpl implements VRChatApiService {
     Executor asyncExecutor;
     @Value("${cache.friends}")
     String friendsCacheKey;
+
+    @Override
+    public ResponseEntity<CurrentUser> auth(String username, String password) {
+        String uri = "/auth/user";
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBasicAuth(username, password);
+        ResponseEntity<CurrentUser> response = apiRestTemplate.exchange(uri, HttpMethod.GET, new HttpEntity<>(headers), CurrentUser.class);
+        return response;
+    }
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 0))
     @Override

@@ -2,21 +2,21 @@ package cn.sola97.vrchat.service.impl;
 
 import cn.sola97.vrchat.entity.CurrentUser;
 import cn.sola97.vrchat.service.CookieService;
+import cn.sola97.vrchat.service.VRChatApiService;
 import cn.sola97.vrchat.utils.CookieUtil;
-import cn.sola97.vrchat.utils.HttpUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.http.*;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
-import java.net.Proxy;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -43,27 +43,14 @@ public class CookieServiceImpl implements CookieService {
     @Value("${vrchat.api.proxy:}")
     String proxyString;
     @Autowired
+    @Lazy
+    VRChatApiService vrchatApiServiceImpl;
+    @Autowired
     RedisTemplate redisTemplate;
     private Map<String, Integer> friendsIndexMap;
 
     private String authenticate() {
-        Proxy proxy = HttpUtil.getProxy(proxyString);
-        HttpHeaders headers = new HttpHeaders();
-        headers.add(HttpHeaders.USER_AGENT, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36");
-        headers.setBasicAuth(username, password);
-        String URL = uri + "/auth/user?apiKey=JlE5Jldo5Jibnk5O5hTx6XVqsJu4WJ26";
-
-        MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
-        converter.setSupportedMediaTypes(Collections.singletonList(MediaType.ALL));
-        RestTemplate restTemplate = new RestTemplate();
-
-        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
-        if (proxy != null)
-            requestFactory.setProxy(proxy);
-        restTemplate.setMessageConverters(Collections.singletonList(converter));
-        restTemplate.setRequestFactory(requestFactory);
-
-        ResponseEntity<CurrentUser> response = restTemplate.exchange(URL, HttpMethod.GET, new HttpEntity<>(headers), CurrentUser.class);
+        ResponseEntity<CurrentUser> response = vrchatApiServiceImpl.auth(username, password);
         String cookies = CookieUtil.processHeaders(response.getHeaders());
         setCookie(cookies);
         CurrentUser currentUser = response.getBody();
