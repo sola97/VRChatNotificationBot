@@ -1,6 +1,8 @@
 package cn.sola97.vrchat.pojo;
 
 import net.dv8tion.jda.api.EmbedBuilder;
+import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -80,7 +82,7 @@ public class MessageDTO {
                 ", content='" + content + '\'' +
                 ", channelId='" + channelId + '\'' +
                 ", callback='" + callback + '\'' +
-                ", embedBuilder=" + embedBuilder +
+                ", embedBuilder=" + ReflectionToStringBuilder.toString(embedBuilder, ToStringStyle.SHORT_PREFIX_STYLE) +
                 ", pings=" + pings +
                 ", locationMap=" + locationMap +
                 '}';
