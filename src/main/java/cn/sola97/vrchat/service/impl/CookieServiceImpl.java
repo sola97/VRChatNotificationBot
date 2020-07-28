@@ -160,9 +160,6 @@ public class CookieServiceImpl implements CookieService {
             logger.info("从缓存中查询到好友列表 size:{}", friends.size());
             friendsIndexMap = convertFriendListToMap(friends);
             index = friendsIndexMap.getOrDefault(usrId, null);
-        } else {
-            authenticate();
-            index = friendsIndexMap.getOrDefault(usrId, null);
         }
         if (index != null) return index + 1;
         return null;
