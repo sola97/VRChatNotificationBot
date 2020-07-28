@@ -1,5 +1,6 @@
 package cn.sola97.vrchat.aop.handler;
 
+import cn.sola97.vrchat.utils.ReflectionUtil;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.ResponseErrorHandler;
 
 import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.net.URI;
 
 @Component
@@ -17,10 +19,14 @@ public class CmdErrorHandler implements ResponseErrorHandler {
 
     @Override
     public boolean hasError(ClientHttpResponse clientHttpResponse) throws IOException {
-        if (!clientHttpResponse.getStatusCode().is2xxSuccessful()) {
-            logger.error("Command - Response StatusCode:" + clientHttpResponse.getStatusCode());
-        } else {
-            logger.debug("Command - Response StatusCode:" + clientHttpResponse.getStatusCode());
+        if (logger.isDebugEnabled()) {
+            HttpURLConnection httpURLConnection = ReflectionUtil.getHttpURLConnection(clientHttpResponse);
+            if (httpURLConnection != null) {
+                logger.debug("Command - {} {} {}",
+                        httpURLConnection.getRequestMethod(),
+                        httpURLConnection.getURL(),
+                        httpURLConnection.getHeaderField(0));
+            }
         }
         return !clientHttpResponse.getStatusCode().is2xxSuccessful();
     }
@@ -31,7 +37,12 @@ public class CmdErrorHandler implements ResponseErrorHandler {
 
     @Override
     public void handleError(URI url, HttpMethod method, ClientHttpResponse response) throws IOException {
-        logger.error("Reponse error url:{} method:{}", url, method);
+        HttpURLConnection httpURLConnection = ReflectionUtil.getHttpURLConnection(response);
+        assert httpURLConnection != null;
+        logger.error("Command - {} {} {}",
+                httpURLConnection.getRequestMethod(),
+                httpURLConnection.getURL(),
+                httpURLConnection.getHeaderField(0));
         handleError(response);
     }
 }
