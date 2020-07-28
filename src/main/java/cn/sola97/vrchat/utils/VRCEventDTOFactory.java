@@ -7,11 +7,12 @@ import cn.sola97.vrchat.pojo.VRCEventDTO;
 import cn.sola97.vrchat.pojo.impl.WsFriendContent;
 
 public class VRCEventDTOFactory {
-    public static VRCEventDTO<WsFriendContent> createOfflineEvent(String usrId) {
+    public static VRCEventDTO<WsFriendContent> createOfflineEvent(String usrId, User user) {
         VRCEventDTO<WsFriendContent> event = new VRCEventDTO<>(true);
         event.setType(EventTypeEnums.OFFLINE);
         WsFriendContent content = new WsFriendContent();
         content.setUserId(usrId);
+        content.setUser(user);
         event.setContent(content);
         return event;
     }

@@ -29,5 +29,5 @@ public interface CacheService {
 
     User getNonFriendUser(String id);
 
-    void setUserOffline(String id);
+    boolean setUserOffline(String id);
 }

@@ -1,6 +1,7 @@
 package cn.sola97.vrchat.aop.listener;
 
 import cn.sola97.vrchat.controller.EventHandlerMapping;
+import cn.sola97.vrchat.entity.User;
 import cn.sola97.vrchat.service.VRChatApiService;
 import cn.sola97.vrchat.utils.VRCEventDTOFactory;
 import org.slf4j.Logger;
@@ -29,8 +30,14 @@ public class RedisMessageListener implements MessageListener {
     public void onMessage(Message message, byte[] pattern) {
         String key = new String(message.getBody());
         if (key.startsWith(onlineUserKey)) {
-            String usrId = key.replaceAll(onlineUserKey, "");
-            eventHandlerMapping.friendOffline(VRCEventDTOFactory.createOfflineEvent(usrId));
+            try {
+                String usrId = key.replaceAll(onlineUserKey, "");
+                User user = vrchatApiServiceImpl.getUserById(usrId, true);
+                logger.info("好友{}下线通知", user.getDisplayName());
+                eventHandlerMapping.friendOffline(VRCEventDTOFactory.createOfflineEvent(usrId, user));
+            } catch (Exception e) {
+                logger.error("下线通知出错", message);
+            }
         }
     }
 }

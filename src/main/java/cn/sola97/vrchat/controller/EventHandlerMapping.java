@@ -5,6 +5,7 @@ import cn.sola97.vrchat.pojo.impl.WsFriendContent;
 import cn.sola97.vrchat.pojo.impl.WsNotificationContent;
 import cn.sola97.vrchat.service.CacheService;
 import cn.sola97.vrchat.service.MessageService;
+import cn.sola97.vrchat.service.ScheduledService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +14,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class EventHandlerMapping {
     private static final Logger logger = LoggerFactory.getLogger(EventHandlerMapping.class);
+    @Autowired
+    ScheduledService scheduledServiceImpl;
     @Autowired
     MessageService messageServiceImpl;
     //注入自己使AOP生效
@@ -25,8 +28,10 @@ public class EventHandlerMapping {
     public void handle(String type, VRCEventDTO event) {
         if ("friend-active".equals(type)) handlerMapping.friendActive(event);
         else if ("friend-location".equals(type)) handlerMapping.friendLocation(event);
-//        else if ("friend-offline".equals(type)) handlerMapping.friendOffline(event);
-//        else if ("friend-update".equals(type)) handlerMapping.friendUpdate(event);
+        else if ("friend-offline".equals(type)) handlerMapping.friendOffline(event);
+        else if ("friend-update".equals(type)) {
+            scheduledServiceImpl.checkOnlineUser(((WsFriendContent) event.getContent()).getUserId());
+        }
         else if ("friend-online".equals(type)) handlerMapping.friendOnline(event);
         else if ("user-active".equals(type)) handlerMapping.userActive(event);
         else if ("user-location".equals(type)) handlerMapping.userLocation(event);

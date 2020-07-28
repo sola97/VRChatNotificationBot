@@ -33,6 +33,8 @@ public class CacheServiceImpl implements CacheService {
     int onlineExpire;
     @Value("${cache.nonFriend.expire}")
     int nonFriendExpire;
+    @Value("${scheduled.checkOnline.period}")
+    int checkOnlinePeriod;
     @Override
     public Object get(String key) {
         return redisTemplate.opsForValue().get(key);
@@ -104,7 +106,7 @@ public class CacheServiceImpl implements CacheService {
     }
 
     @Override
-    public void setUserOffline(String id) {
-        redisTemplate.delete(onlineUserKey + id);
+    public boolean setUserOffline(String id) {
+        return redisTemplate.expire(onlineUserKey + id, checkOnlinePeriod + 1, TimeUnit.SECONDS);
     }
 }

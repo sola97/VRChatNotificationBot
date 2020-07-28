@@ -4,6 +4,7 @@ import cn.sola97.vrchat.controller.EventHandlerMapping;
 import cn.sola97.vrchat.entity.User;
 import cn.sola97.vrchat.entity.UserOnline;
 import cn.sola97.vrchat.enums.EventTypeEnums;
+import cn.sola97.vrchat.pojo.EventContent;
 import cn.sola97.vrchat.pojo.VRCEventDTO;
 import cn.sola97.vrchat.pojo.impl.WsFriendContent;
 import cn.sola97.vrchat.service.CacheService;
@@ -41,9 +42,9 @@ public class CacheCheckAspect {
         UserOnline cachedUser = cacheServiceImpl.getOnlineUser(userId);
         String prefix = "";
         if (Boolean.TRUE.equals(event.getManuualCreated())) {
-            prefix = "轮询-好友：";
+            prefix = "轮询-缓存检查：";
         }
-        String name = prefix + event.getContent().getUser().getDisplayName();
+        String name = prefix + Optional.ofNullable(event.getContent()).map(EventContent::getUser).map(User::getDisplayName).orElse("");
         switch (event.getType()) {
             case ONLINE:
                 if (cachedUser == null) {
@@ -56,8 +57,33 @@ public class CacheCheckAspect {
                 }
                 break;
             case OFFLINE:
-                //删除缓存
-                cacheServiceImpl.setUserOffline(userId);
+                //如果是由redis创建的通知
+                if (Boolean.TRUE.equals(event.getManuualCreated())) {
+                    //确认没有新的缓存
+                    if (cachedUser == null) {
+                        //继续执行
+                        logger.info("{}在缓存中已过期，设置下线通知", name);
+                    } else {
+                        logger.info("{}在缓存中存在，跳过下线通知", name);
+                        return;
+                    }
+                } else {
+                    //如果是websocket消息
+                    //设置缓存为10秒后过期
+                    if (cachedUser != null) {
+                        //设置成功
+                        boolean set = cacheServiceImpl.setUserOffline(userId);
+                        if (set) {
+                            logger.info("{}设置为下一周期下线", name);
+                            return;
+                        } else {
+                            logger.info("{}设置为过期时间失败，可能已下线，继续下线通知", name);
+                        }
+                    }
+                    if (cachedUser == null) {
+                        logger.info("{}在缓存中已过期，设置下线通知", name);
+                    }
+                }
                 break;
             case LOCATION:
                 if (cachedUser == null) {
