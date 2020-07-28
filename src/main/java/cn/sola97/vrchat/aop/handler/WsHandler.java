@@ -2,6 +2,7 @@ package cn.sola97.vrchat.aop.handler;
 
 
 import cn.sola97.vrchat.controller.EventHandlerMapping;
+import cn.sola97.vrchat.enums.EventTypeEnums;
 import cn.sola97.vrchat.pojo.VRCEventDTO;
 import cn.sola97.vrchat.service.CookieService;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -53,6 +54,9 @@ public class WsHandler extends TextWebSocketHandler {
             }
             String type = json.get("type").asText();
             logger.debug("type:" + type + " palyload:" + message.getPayload());
+            if (!EventTypeEnums.getmMap().containsKey(type)) {
+                logger.warn("不支持的type:{} palyload:{}", type, message.getPayload());
+            }
             eventHandlerMapping.handle(type, mapper.readValue(message.getPayload(), VRCEventDTO.class));
         } catch (Exception e) {
             logger.error("error on handleTextMessage\n payload: " + message.getPayload(), e);

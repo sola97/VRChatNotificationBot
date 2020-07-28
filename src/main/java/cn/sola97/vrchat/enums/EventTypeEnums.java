@@ -51,4 +51,8 @@ public enum EventTypeEnums {
         map.put(null, null);
         return map;
     }
+
+    public static Map<String, EventTypeEnums> getmMap() {
+        return mMap;
+    }
 }
