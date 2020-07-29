@@ -56,4 +56,8 @@ public class Kryox extends Kryo {
         }
     }
 
+    public Kryox() {
+        super();
+        this.setRegistrationRequired(false);
+    }
 }
