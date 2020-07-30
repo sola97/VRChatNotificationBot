@@ -4,6 +4,8 @@ import cn.sola97.vrchat.entity.User;
 import cn.sola97.vrchat.entity.UserOnline;
 import cn.sola97.vrchat.entity.World;
 
+import java.time.ZonedDateTime;
+
 public interface CacheService {
     Object get(String key);
 
@@ -30,4 +32,6 @@ public interface CacheService {
     User getNonFriendUser(String id);
 
     boolean setUserOffline(String id);
+
+    ZonedDateTime getUserOfflineTime(String id);
 }

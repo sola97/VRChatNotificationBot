@@ -36,7 +36,7 @@ public class RedisMessageListener implements MessageListener {
                 logger.info("好友{}下线通知", user.getDisplayName());
                 eventHandlerMapping.friendOffline(VRCEventDTOFactory.createOfflineEvent(usrId, user));
             } catch (Exception e) {
-                logger.error("下线通知出错", message);
+                logger.error("下线通知出错", e);
             }
         }
     }

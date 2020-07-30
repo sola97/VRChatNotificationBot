@@ -41,10 +41,12 @@ public class CacheCheckAspect {
         User user = event.getContent().getUser();
         UserOnline cachedUser = cacheServiceImpl.getOnlineUser(userId);
         String prefix = "";
-        if (Boolean.TRUE.equals(event.getManuualCreated())) {
+        if (Boolean.TRUE.equals(event.isManuualCreated())) {
             prefix = "轮询-缓存检查：";
+        } else {
+            prefix = "事件-缓存检查：";
         }
-        String name = prefix + Optional.ofNullable(event.getContent()).map(EventContent::getUser).map(User::getDisplayName).orElse("");
+        String name = prefix + Optional.ofNullable(event.getContent()).map(EventContent::getUser).map(User::getDisplayName).orElse("[未获取到名字]");
         switch (event.getType()) {
             case ACTIVE:
                 if (cachedUser != null) {
@@ -66,7 +68,7 @@ public class CacheCheckAspect {
                 break;
             case OFFLINE:
                 //如果是由redis创建的通知
-                if (Boolean.TRUE.equals(event.getManuualCreated())) {
+                if (Boolean.TRUE.equals(event.isManuualCreated())) {
                     //确认没有新的缓存
                     if (cachedUser == null) {
                         //继续执行
@@ -85,11 +87,12 @@ public class CacheCheckAspect {
                             logger.info("{}设置为下一周期下线", name);
                             return;
                         } else {
-                            logger.info("{}设置为过期时间失败，可能已下线，继续下线通知", name);
+                            logger.info("{}设置为过期时间失败，可能已下线，跳过下线通知", name);
+                            return;
                         }
-                    }
-                    if (cachedUser == null) {
-                        logger.info("{}在缓存中已过期，设置下线通知", name);
+                    } else {
+                        logger.info("{}在缓存中已过期，重复的下线通知，跳过", name);
+                        return;
                     }
                 }
                 break;

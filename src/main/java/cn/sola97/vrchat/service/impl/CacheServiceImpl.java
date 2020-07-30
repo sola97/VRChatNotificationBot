@@ -4,17 +4,24 @@ import cn.sola97.vrchat.entity.User;
 import cn.sola97.vrchat.entity.UserOnline;
 import cn.sola97.vrchat.entity.World;
 import cn.sola97.vrchat.service.CacheService;
+import cn.sola97.vrchat.utils.TimeUtil;
+import org.apache.commons.collections4.map.PassiveExpiringMap;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.time.ZonedDateTime;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @Service
 public class CacheServiceImpl implements CacheService {
     @Autowired
+    TimeUtil timeUtil;
+    @Autowired
     RedisTemplate redisTemplate;
+    private Map<String, ZonedDateTime> offlineMap = null;
     @Value("${cache.expire}")
     int seconds;
     @Value("${cache.world}")
@@ -35,6 +42,7 @@ public class CacheServiceImpl implements CacheService {
     int nonFriendExpire;
     @Value("${scheduled.checkOnline.period}")
     int checkOnlinePeriod;
+
     @Override
     public Object get(String key) {
         return redisTemplate.opsForValue().get(key);
@@ -107,6 +115,20 @@ public class CacheServiceImpl implements CacheService {
 
     @Override
     public boolean setUserOffline(String id) {
-        return redisTemplate.expire(onlineUserKey + id, checkOnlinePeriod + 1, TimeUnit.SECONDS);
+        if (offlineMap == null) {
+            offlineMap = new PassiveExpiringMap<>(checkOnlinePeriod + 1, TimeUnit.SECONDS);
+        }
+        boolean success = redisTemplate.expire(onlineUserKey + id, checkOnlinePeriod + 1, TimeUnit.SECONDS);
+        //记录Event的下线时间
+        if (success) offlineMap.put(id, timeUtil.getZonedDateTime());
+        return success;
+    }
+
+    @Override
+    public ZonedDateTime getUserOfflineTime(String id) {
+        if (offlineMap == null) {
+            offlineMap = new PassiveExpiringMap<>(checkOnlinePeriod + 1, TimeUnit.SECONDS);
+        }
+        return offlineMap.getOrDefault(id, timeUtil.getZonedDateTime().minusSeconds(onlineExpire));
     }
 }

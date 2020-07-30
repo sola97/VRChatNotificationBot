@@ -87,11 +87,7 @@ public class VRCEventDTO<T> {
         this.messages = messages;
     }
 
-    public boolean isCreatedByFactory() {
-        return typeReference == null;
-    }
-
-    public Boolean getManuualCreated() {
+    public Boolean isManuualCreated() {
         return manuualCreated;
     }
 
