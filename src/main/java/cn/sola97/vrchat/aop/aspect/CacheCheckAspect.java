@@ -46,6 +46,14 @@ public class CacheCheckAspect {
         }
         String name = prefix + Optional.ofNullable(event.getContent()).map(EventContent::getUser).map(User::getDisplayName).orElse("");
         switch (event.getType()) {
+            case ACTIVE:
+                if (cachedUser != null) {
+                    logger.info("{}在缓存中已存在，跳过Active通知", name);
+                    return;
+                } else {
+                    logger.info("{}在缓存中不存在，设置Active通知", name);
+                }
+                break;
             case ONLINE:
                 if (cachedUser == null) {
                     //更新缓存，然后通知
