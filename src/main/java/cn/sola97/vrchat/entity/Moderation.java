@@ -3,6 +3,7 @@ package cn.sola97.vrchat.entity;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.util.Date;
+import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Moderation {
@@ -82,5 +83,24 @@ public class Moderation {
                 ", targetUserId='" + targetUserId + '\'' +
                 ", type='" + type + '\'' +
                 '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Moderation that = (Moderation) o;
+        return id.equals(that.id) &&
+                Objects.equals(sourceDisplayName, that.sourceDisplayName) &&
+                Objects.equals(sourceUserId, that.sourceUserId) &&
+                Objects.equals(targetDisplayName, that.targetDisplayName) &&
+                Objects.equals(targetUserId, that.targetUserId) &&
+                Objects.equals(type, that.type) &&
+                Objects.equals(created, that.created);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, sourceDisplayName, sourceUserId, targetDisplayName, targetUserId, type, created);
     }
 }
