@@ -8,6 +8,7 @@ import cn.sola97.vrchat.enums.EventTypeEnums;
 import cn.sola97.vrchat.enums.ReleaseStatusEnums;
 import cn.sola97.vrchat.pojo.VRCEventDTO;
 import cn.sola97.vrchat.pojo.impl.WsFriendContent;
+import cn.sola97.vrchat.pojo.impl.WsNotificationContent;
 import cn.sola97.vrchat.service.*;
 import cn.sola97.vrchat.utils.VRCEventDTOFactory;
 import cn.sola97.vrchat.utils.WorldUtil;
@@ -46,7 +47,7 @@ public class ScheduledServiceImpl implements ScheduledService {
     private Long checkOnlinePeriod;
     private Long checkChannelPeriod;
     private Long checkNonFriendPeriod;
-
+    private Long checkModeratedPeriod;
     public ScheduledServiceImpl(JDAProxy jda, ScheduledExecutorService scheduledExecutorService,
                                 WebSocketConnectionManagerProxy webSocketConnectionManagerProxy,
                                 VRChatApiService vrchatApiServiceImpl, MessageService messageServiceImpl,
@@ -57,7 +58,8 @@ public class ScheduledServiceImpl implements ScheduledService {
                                 CookieService cookieServiceImpl,
                                 @Value("${scheduled.checkOnline.period}") final Long checkOnlinePeriod,
                                 @Value("${scheduled.checkChannel.period}") final Long checkChannelPeriod,
-                                @Value("${scheduled.checkNonfriend.period}") final Long checkNonFriendPeriod) {
+                                @Value("${scheduled.checkNonfriend.period}") final Long checkNonFriendPeriod,
+                                @Value("${vrchat.currentUser.moderated.period}") final Long checkModeratedPeriod) {
         this.pingServiceImpl = pingServiceImpl;
         this.subscribeServiceImpl = subscribeServiceImpl;
         this.cookieServiceImpl = cookieServiceImpl;
@@ -73,6 +75,7 @@ public class ScheduledServiceImpl implements ScheduledService {
         this.eventHandlerMapping = eventHandlerMapping;
         this.channelServiceImpl = channelServiceImpl;
         this.checkNonFriendPeriod = checkNonFriendPeriod;
+        this.checkModeratedPeriod = checkModeratedPeriod;
 
         botWatchdog();
         websocketWatchdog();
@@ -81,7 +84,7 @@ public class ScheduledServiceImpl implements ScheduledService {
         updatePresence();
         checkChannelsTask();
         checkNonFriendAvatar();
-
+        playerModeratedCheck();
         if (!scheduledExecutorService.isShutdown()) logger.info("ScheduledService running ");
 
     }
@@ -332,5 +335,26 @@ public class ScheduledServiceImpl implements ScheduledService {
             });
 
         }, 10, checkNonFriendPeriod, TimeUnit.SECONDS);
+    }
+
+    private void playerModeratedCheck() {
+        scheduledExecutorService.scheduleAtFixedRate(() -> {
+            try {
+                logger.info("开始检查PlayerModerated...");
+                List<Moderation> newModerations = vrchatApiServiceImpl.getPlayerModerated();
+                List<Moderation> diff = cacheServiceImpl.diffPlayerModerated(newModerations);
+                if (!diff.isEmpty()) {
+                    for (Moderation moderation : diff) {
+                        VRCEventDTO<WsNotificationContent> notificationEvent = VRCEventDTOFactory.createNotificationEvent(moderation);
+                        logger.info("轮询-Moderated：{} {} {}了 {}",
+                                moderation.getId(), moderation.getSourceDisplayName(), moderation.getType(), moderation.getTargetDisplayName());
+                        eventHandlerMapping.notificationModerated(notificationEvent);
+                    }
+                }
+                logger.info("检查PlayerModerated结束，事件数:{}", diff.size());
+            } catch (Exception e) {
+                logger.error("检查PlayerModerated出错", e);
+            }
+        }, 15, checkModeratedPeriod, TimeUnit.SECONDS);
     }
 }

@@ -1,10 +1,12 @@
 package cn.sola97.vrchat.service;
 
+import cn.sola97.vrchat.entity.Moderation;
 import cn.sola97.vrchat.entity.User;
 import cn.sola97.vrchat.entity.UserOnline;
 import cn.sola97.vrchat.entity.World;
 
 import java.time.ZonedDateTime;
+import java.util.List;
 
 public interface CacheService {
     Object get(String key);
@@ -34,4 +36,10 @@ public interface CacheService {
     boolean setUserOffline(String id);
 
     ZonedDateTime getUserOfflineTime(String id);
+
+    List<Moderation> getPlayerModerated();
+
+    void setPlayerModerated(List<Moderation> moderations);
+
+    List<Moderation> diffPlayerModerated(List<Moderation> moderations);
 }

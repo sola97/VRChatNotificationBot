@@ -116,4 +116,8 @@ public class EventHandlerMapping {
         return "邀请你到";
     }
 
+    public String notificationModerated(VRCEventDTO<WsNotificationContent> event) {
+        return "对你设置了 " + event.getContent().getType();
+    }
+
 }

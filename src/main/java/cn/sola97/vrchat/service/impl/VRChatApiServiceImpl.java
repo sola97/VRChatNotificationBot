@@ -180,7 +180,7 @@ public class VRChatApiServiceImpl implements VRChatApiService {
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 0))
     @Override
-    public List<Moderation> getPlayerModerations() {
+    public List<Moderation> getPlayerModerated() {
         String uri = "/auth/user/playermoderated";
         Moderation[] moderations = apiRestTemplate.getForObject(uri, Moderation[].class);
         assert moderations != null;

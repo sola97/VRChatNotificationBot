@@ -1,10 +1,12 @@
 package cn.sola97.vrchat.service.impl;
 
+import cn.sola97.vrchat.entity.Moderation;
 import cn.sola97.vrchat.entity.User;
 import cn.sola97.vrchat.entity.UserOnline;
 import cn.sola97.vrchat.entity.World;
 import cn.sola97.vrchat.service.CacheService;
 import cn.sola97.vrchat.utils.TimeUtil;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.map.PassiveExpiringMap;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,6 +14,8 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -42,6 +46,8 @@ public class CacheServiceImpl implements CacheService {
     int nonFriendExpire;
     @Value("${scheduled.checkOnline.period}")
     int checkOnlinePeriod;
+    @Value("${vrchat.currentUser.moderated}")
+    String playerModeratedKey;
 
     @Override
     public Object get(String key) {
@@ -130,5 +136,34 @@ public class CacheServiceImpl implements CacheService {
             offlineMap = new PassiveExpiringMap<>(checkOnlinePeriod + 1, TimeUnit.SECONDS);
         }
         return offlineMap.getOrDefault(id, timeUtil.getZonedDateTime().minusSeconds(onlineExpire));
+    }
+
+    @Override
+    public List<Moderation> getPlayerModerated() {
+        if (redisTemplate.hasKey(playerModeratedKey)) {
+            List<Moderation> list = (List<Moderation>) redisTemplate.opsForValue().get(playerModeratedKey);
+            return list;
+        }
+        return new ArrayList<>();
+    }
+
+    @Override
+    public void setPlayerModerated(List<Moderation> moderations) {
+        if (redisTemplate.hasKey(playerModeratedKey)) {
+            redisTemplate.delete(playerModeratedKey);
+        }
+        redisTemplate.opsForValue().set(playerModeratedKey, moderations);
+    }
+
+    @Override
+    public List<Moderation> diffPlayerModerated(List<Moderation> moderations) {
+        List<Moderation> playerModerated = getPlayerModerated();
+        if (playerModerated.isEmpty()) {
+            setPlayerModerated(moderations);
+            return playerModerated;
+        }
+        List<Moderation> subtract = (List<Moderation>) CollectionUtils.subtract(moderations, playerModerated);
+        setPlayerModerated(moderations);
+        return subtract;
     }
 }

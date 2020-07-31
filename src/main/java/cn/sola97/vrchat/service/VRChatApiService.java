@@ -22,7 +22,7 @@ public interface VRChatApiService {
 
     World getWorldById(String id, Boolean withCache);
 
-    List<Moderation> getPlayerModerations();
+    List<Moderation> getPlayerModerated();
 
     List<User> searchUser(String name, int num, int offset);
 

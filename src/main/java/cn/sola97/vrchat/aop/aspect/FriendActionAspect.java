@@ -75,6 +75,10 @@ public class FriendActionAspect {
     public void friendRequestInvite() {
     }
 
+    @Pointcut("execution(* cn.sola97.vrchat.controller.EventHandlerMapping.notificationModerated(..))")
+    public void playerModerated() {
+    }
+
     @Before("(friendOnline() || friendLocation() || friendUpdate() || friendAvatar() || friendDescription()) && args(event)")
     public void onlineLog(VRCEventDTO<WsFriendContent> event) {
         logger.debug("onlineLog advise before " + event.getContent().getUserId());
@@ -181,6 +185,20 @@ public class FriendActionAspect {
         Object proceed = point.proceed();
         String description = proceed.toString();
         logger.debug("setFriendRequestInvite：" + event.getContent().getSenderUsername() + description);
+        List<MessageDTO> messages = event.getMessages();
+        for (MessageDTO message : messages) {
+            EmbedBuilder embedBuilder = message.getEmbedBuilder();
+            embedBuilder.setDescription(description);
+            embedBuilder.addField("时间", timeUtil.formatTime(event.getContent().getCreated_at()), true);
+        }
+        return proceed;
+    }
+
+    @Around(value = "playerModerated() && args(event)")
+    public Object setPlayerModerated(ProceedingJoinPoint point, VRCEventDTO<WsNotificationContent> event) throws Throwable {
+        Object proceed = point.proceed();
+        String description = proceed.toString();
+        logger.debug("setPlayerModerated：{} {}", event.getContent().getSenderUsername(), description);
         List<MessageDTO> messages = event.getMessages();
         for (MessageDTO message : messages) {
             EmbedBuilder embedBuilder = message.getEmbedBuilder();
