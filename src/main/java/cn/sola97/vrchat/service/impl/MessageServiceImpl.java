@@ -158,7 +158,9 @@ public class MessageServiceImpl implements MessageService {
                 "https://steamcommunity.com/profiles/" + user.getUsername().replaceAll("steam_", "") : null;
         Integer friendIndex = user.getFriendIndex();
         String indexString = "";
-        if (!user.getFriend()) {
+        if (user.getId().equals(cookieServiceImpl.getCurrentUserId())) {
+            indexString = "  [自己]";
+        } else if (!user.getFriend()) {
             indexString = "  [非好友]";
         } else if (friendIndex == null) {
             friendIndex = cookieServiceImpl.getCurrentUserFriendIndex(user.getId());
