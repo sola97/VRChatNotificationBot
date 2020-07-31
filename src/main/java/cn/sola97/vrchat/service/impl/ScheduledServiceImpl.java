@@ -326,7 +326,7 @@ public class ScheduledServiceImpl implements ScheduledService {
                             eventHandlerMapping.friendDescription(event);
                         }
                     } catch (Exception e) {
-                        logger.error("检查用户：" + displayName + "出错 \n", e.getMessage());
+                        logger.error("检查用户：" + displayName + "出错 \n", e);
                     }
                 }, asyncExecutor);
             });

@@ -14,7 +14,7 @@ public class RetryUtil {
         for (int i = 0; i < maxRetries; i++) {
             f = f.thenApply(CompletableFuture::completedFuture)
                     .exceptionally(t -> {
-                        logger.error("RetryUtil:{}", t.getMessage());
+                        logger.error("RetryUtil:", t);
                         return supplier.get();
                     })
                     .thenCompose(Function.identity());

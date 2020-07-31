@@ -18,6 +18,7 @@ import sun.net.www.protocol.https.DelegateHttpsURLConnection;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URI;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -30,19 +31,17 @@ public class ApiErrorHandler implements ResponseErrorHandler {
     @Override
     public boolean hasError(@NotNull ClientHttpResponse clientHttpResponse) throws IOException {
         if (logger.isDebugEnabled()) {
-            HttpURLConnection httpURLConnection = ReflectionUtil.getHttpURLConnection(clientHttpResponse);
-            if (httpURLConnection != null) {
-                logger.debug("VRChatAPI - {} {} {}",
-                        httpURLConnection.getRequestMethod(),
-                        httpURLConnection.getURL(),
-                        httpURLConnection.getHeaderField(0));
-            }
+            logger.debug(getMessage(clientHttpResponse));
         }
         if(clientHttpResponse.getStatusCode()== HttpStatus.UNAUTHORIZED){
+            logger.warn(getMessage(clientHttpResponse));
+            logger.warn("delete cookie");
             cookieServiceImpl.deleteCookie();
             return true;
         }else if(clientHttpResponse.getStatusCode()==HttpStatus.FORBIDDEN){
-            logger.warn("Call returned a error 403 forbidden resposne");
+            logger.error(getMessage(clientHttpResponse));
+        } else if (clientHttpResponse.getStatusCode() == HttpStatus.NOT_FOUND) {
+            logger.error(getMessage(clientHttpResponse) + "Body:" + clientHttpResponse.getBody().read());
         }
         return !clientHttpResponse.getStatusCode().is2xxSuccessful();
     }
@@ -76,5 +75,18 @@ public class ApiErrorHandler implements ResponseErrorHandler {
         strings.add("Accept:" + headers.get("Accept").get(0));
         strings.add("Connection:" + headers.get("Connection").get(0));
         return "\n" + StringUtils.join(strings, '\n');
+    }
+
+    private String getMessage(ClientHttpResponse clientHttpResponse) {
+        HttpURLConnection httpURLConnection = ReflectionUtil.getHttpURLConnection(clientHttpResponse);
+        try {
+            return MessageFormat.format("VRChatAPI - {0} {1} {2}",
+                    httpURLConnection.getRequestMethod(),
+                    httpURLConnection.getURL(),
+                    httpURLConnection.getHeaderField(0)).toString();
+        } catch (Exception e) {
+            logger.error("getMessage error", e);
+        }
+        return "VRChatAPI - getMessage error";
     }
 }
