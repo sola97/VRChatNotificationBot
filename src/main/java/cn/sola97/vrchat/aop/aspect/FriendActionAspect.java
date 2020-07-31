@@ -198,7 +198,7 @@ public class FriendActionAspect {
     public Object setPlayerModerated(ProceedingJoinPoint point, VRCEventDTO<WsNotificationContent> event) throws Throwable {
         Object proceed = point.proceed();
         String description = proceed.toString();
-        logger.debug("setPlayerModerated：{} {}", event.getContent().getSenderUsername(), description);
+        logger.debug("setPlayerModeratedIds：{} {}", event.getContent().getSenderUsername(), description);
         List<MessageDTO> messages = event.getMessages();
         for (MessageDTO message : messages) {
             EmbedBuilder embedBuilder = message.getEmbedBuilder();

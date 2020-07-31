@@ -12,12 +12,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import redis.clients.jedis.exceptions.JedisDataException;
 
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Service
 public class CacheServiceImpl implements CacheService {
@@ -139,31 +139,47 @@ public class CacheServiceImpl implements CacheService {
     }
 
     @Override
-    public List<Moderation> getPlayerModerated() {
-        if (redisTemplate.hasKey(playerModeratedKey)) {
-            List<Moderation> list = (List<Moderation>) redisTemplate.opsForValue().get(playerModeratedKey);
-            return list;
+    public Long setPlayerModeratedIds(List<Moderation> moderations) {
+        try {
+            return redisTemplate.opsForSet().add(playerModeratedKey, mapModerationIdToArray(moderations));
+        } catch (JedisDataException e) {
+            redisTemplate.delete(playerModeratedKey);
+            return redisTemplate.opsForSet().add(playerModeratedKey, mapModerationIdToArray(moderations));
         }
-        return new ArrayList<>();
     }
 
     @Override
-    public void setPlayerModerated(List<Moderation> moderations) {
-        if (redisTemplate.hasKey(playerModeratedKey)) {
-            redisTemplate.delete(playerModeratedKey);
-        }
-        redisTemplate.opsForValue().set(playerModeratedKey, moderations);
+    public Set<String> getPlayerModeratedIds(List<Moderation> moderations) {
+        Set<String> diff = new HashSet<>();
+        //如果是第一次设置，则没有不同，返回空列表
+        if (Boolean.FALSE.equals(redisTemplate.hasKey(playerModeratedKey))) return diff;
+        //否则取差集获取ID集合返回
+        diff = redisTemplate.opsForSet().members(playerModeratedKey);
+        return diff;
     }
 
     @Override
     public List<Moderation> diffPlayerModerated(List<Moderation> moderations) {
-        List<Moderation> playerModerated = getPlayerModerated();
-        if (playerModerated.isEmpty()) {
-            setPlayerModerated(moderations);
-            return playerModerated;
-        }
-        List<Moderation> subtract = (List<Moderation>) CollectionUtils.subtract(moderations, playerModerated);
-        setPlayerModerated(moderations);
-        return subtract;
+        //取差集ID
+        Set<String> playerModeratedIds = getPlayerModeratedIds(moderations);
+        Collection<String> subtract = CollectionUtils.subtract(mapModerationIdToSet(moderations), playerModeratedIds);
+        Map<String, Moderation> moderationMap = convertModerationToMap(moderations);
+        List<Moderation> collect = subtract.stream().map(moderationMap::get).collect(Collectors.toList());
+        collect.sort(Comparator.comparing(Moderation::getCreated));
+        //加入新的moderation到集合中
+        setPlayerModeratedIds(moderations);
+        return collect;
+    }
+
+    private String[] mapModerationIdToArray(List<Moderation> moderations) {
+        return moderations.stream().map(Moderation::getId).toArray(String[]::new);
+    }
+
+    private List<String> mapModerationIdToSet(List<Moderation> moderations) {
+        return moderations.stream().map(Moderation::getId).collect(Collectors.toList());
+    }
+
+    private Map<String, Moderation> convertModerationToMap(List<Moderation> moderations) {
+        return moderations.stream().collect(Collectors.toMap(Moderation::getId, v -> v));
     }
 }
