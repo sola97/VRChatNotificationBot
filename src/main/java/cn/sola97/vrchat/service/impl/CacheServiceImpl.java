@@ -12,7 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
-import redis.clients.jedis.exceptions.JedisDataException;
 
 import java.time.ZonedDateTime;
 import java.util.*;
@@ -140,22 +139,23 @@ public class CacheServiceImpl implements CacheService {
 
     @Override
     public Long setPlayerModeratedIds(List<Moderation> moderations) {
-        try {
-            return redisTemplate.opsForSet().add(playerModeratedKey, mapModerationIdToArray(moderations));
-        } catch (JedisDataException e) {
-            redisTemplate.delete(playerModeratedKey);
-            return redisTemplate.opsForSet().add(playerModeratedKey, mapModerationIdToArray(moderations));
-        }
+        return redisTemplate.opsForSet().add(playerModeratedKey, mapModerationIdToArray(moderations));
     }
 
     @Override
+    public Boolean deletePlayerModeratedIds() {
+        if (redisTemplate.hasKey(playerModeratedKey)) {
+            return redisTemplate.delete(playerModeratedKey);
+        }
+        return false;
+    }
+    @Override
     public Set<String> getPlayerModeratedIds(List<Moderation> moderations) {
-        Set<String> diff = new HashSet<>();
-        //如果是第一次设置，则没有不同，返回空列表
-        if (Boolean.FALSE.equals(redisTemplate.hasKey(playerModeratedKey))) return diff;
+        if (!redisTemplate.hasKey(playerModeratedKey)) {
+            return mapModerationIdToSet(moderations);
+        }
         //否则取差集获取ID集合返回
-        diff = redisTemplate.opsForSet().members(playerModeratedKey);
-        return diff;
+        return redisTemplate.opsForSet().members(playerModeratedKey);
     }
 
     @Override
@@ -175,8 +175,8 @@ public class CacheServiceImpl implements CacheService {
         return moderations.stream().map(Moderation::getId).toArray(String[]::new);
     }
 
-    private List<String> mapModerationIdToSet(List<Moderation> moderations) {
-        return moderations.stream().map(Moderation::getId).collect(Collectors.toList());
+    private Set<String> mapModerationIdToSet(List<Moderation> moderations) {
+        return moderations.stream().map(Moderation::getId).collect(Collectors.toSet());
     }
 
     private Map<String, Moderation> convertModerationToMap(List<Moderation> moderations) {

@@ -40,6 +40,8 @@ public interface CacheService {
 
     Long setPlayerModeratedIds(List<Moderation> moderations);
 
+    Boolean deletePlayerModeratedIds();
+
     Set<String> getPlayerModeratedIds(List<Moderation> moderations);
 
     List<Moderation> diffPlayerModerated(List<Moderation> moderations);

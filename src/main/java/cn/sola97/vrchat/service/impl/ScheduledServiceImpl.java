@@ -353,6 +353,7 @@ public class ScheduledServiceImpl implements ScheduledService {
                 }
                 logger.info("检查PlayerModerated结束，事件数:{}", diff.size());
             } catch (Exception e) {
+                cacheServiceImpl.deletePlayerModeratedIds();
                 logger.error("检查PlayerModerated出错", e);
             }
         }, 15, checkModeratedPeriod, TimeUnit.SECONDS);
