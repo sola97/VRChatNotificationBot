@@ -27,4 +27,6 @@ public interface PingService {
     Boolean existsPing(Ping ping);
 
     List<Ping> selAllPingNotInUsrIdList(List<String> usrIds);
+
+    boolean disablePingByUsrId(String usrId);
 }

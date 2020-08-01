@@ -28,4 +28,6 @@ public interface SubscribeService {
     List<Subscribe> selSubscribesByUsrIdNotInChannels(String usrId, List<String> channelIds);
 
     List<Subscribe> selAllSubscribesNotInUsrIdList(List<String> usrIds);
+
+    boolean disableSubscribeByUsrId(String usrId);
 }

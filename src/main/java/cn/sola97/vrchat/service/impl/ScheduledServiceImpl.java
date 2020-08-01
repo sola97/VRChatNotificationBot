@@ -260,13 +260,15 @@ public class ScheduledServiceImpl implements ScheduledService {
                         //disable
                         channel.setDisabled(true);
                         channel.setUpdatedAt(new Date());
+
                         logger.info("现在无效的Channel:" + channel.getChannelName() + " id:" + channel.getChannelId());
-                        //update
-                        channelServiceImpl.updChannel(channel);
+                        channelServiceImpl.updChannelByPrimaryKey(channel);
                     } else if (textChannel != null && channel.getDisabled()) {
                         channel.setDisabled(false);
                         channel.setUpdatedAt(new Date());
+
                         logger.info("现在有效的Channel: " + channel.getChannelName() + " id:" + channel.getChannelId());
+                        channelServiceImpl.updChannelByPrimaryKey(channel);
                     }
                     success++;
                 } catch (Exception e) {

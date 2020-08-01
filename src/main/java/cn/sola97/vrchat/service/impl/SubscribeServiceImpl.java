@@ -11,6 +11,7 @@ import cn.sola97.vrchat.service.VRChatApiService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -26,23 +27,25 @@ public class SubscribeServiceImpl implements SubscribeService {
     PingService pingServiceImpl;
 
     @Override
-    public int insSubscribe(Subscribe subscribe){
+    public int insSubscribe(Subscribe subscribe) {
         return subscribeMapper.insertSelective(subscribe);
     }
 
     @Override
-    public int updSubscribe(Subscribe subscribe){
+    public int updSubscribe(Subscribe subscribe) {
         return subscribeMapper.updateByPrimaryKeySelective(subscribe);
     }
+
     @Override
-    public Boolean existsSubscribe(Subscribe subscribe){
+    public Boolean existsSubscribe(Subscribe subscribe) {
         SubscribeExample example = new SubscribeExample();
         example.createCriteria().andChannelIdEqualTo(subscribe.getChannelId()).andUsrIdEqualTo(subscribe.getUsrId());
-        return subscribeMapper.countByExample(example)>0;
+        return subscribeMapper.countByExample(example) > 0;
     }
+
     @Override
-    public int insSubscribeElseUpd(Subscribe subscribe){
-        if(!existsSubscribe(subscribe)){
+    public int insSubscribeElseUpd(Subscribe subscribe) {
+        if (!existsSubscribe(subscribe)) {
             return insSubscribe(subscribe);
         }
         return updSubscribe(subscribe);
@@ -57,11 +60,12 @@ public class SubscribeServiceImpl implements SubscribeService {
     }
 
     @Override
-    public int delSubscribe(Subscribe subscribe){
+    public int delSubscribe(Subscribe subscribe) {
         return subscribeMapper.deleteByPrimaryKey(subscribe);
     }
+
     @Override
-   public List<Subscribe> selSubscribesByUsrId(String usrId){
+    public List<Subscribe> selSubscribesByUsrId(String usrId) {
         SubscribeExample example = new SubscribeExample();
         example.createCriteria().andUsrIdEqualTo(usrId);
         List<Subscribe> subscribes = subscribeMapper.selectByExample(example);
@@ -74,14 +78,14 @@ public class SubscribeServiceImpl implements SubscribeService {
     }
 
     @Override
-    public Boolean existsSubscribe(String channelId,String usr_id){
+    public Boolean existsSubscribe(String channelId, String usr_id) {
         SubscribeExample example = new SubscribeExample();
         example.createCriteria().andChannelIdEqualTo(channelId).andUsrIdEqualTo(usr_id);
-        return subscribeMapper.countByExample(example)>0;
+        return subscribeMapper.countByExample(example) > 0;
     }
 
     @Override
-    public List<Subscribe> selSubscribesByChannelId(String channelId){
+    public List<Subscribe> selSubscribesByChannelId(String channelId) {
         SubscribeExample example = new SubscribeExample();
         example.createCriteria().andChannelIdEqualTo(channelId);
         return subscribeMapper.selectByExample(example);
@@ -89,8 +93,8 @@ public class SubscribeServiceImpl implements SubscribeService {
 
 
     @Override
-    public List<Subscribe> selSubscribesByUsrIdNotInChannels(String usrId, List<String> channelIds){
-        if(channelIds.isEmpty()){
+    public List<Subscribe> selSubscribesByUsrIdNotInChannels(String usrId, List<String> channelIds) {
+        if (channelIds.isEmpty()) {
             return selSubscribesByUsrId(usrId);
         }
         SubscribeExample example = new SubscribeExample();
@@ -104,6 +108,16 @@ public class SubscribeServiceImpl implements SubscribeService {
         SubscribeExample example = new SubscribeExample();
         example.createCriteria().andChannelIdNotIn(channels).andUsrIdNotIn(usrIds).andDisabledEqualTo(false);
         return subscribeMapper.selectByExample(example);
+    }
+
+    @Override
+    public boolean disableSubscribeByUsrId(String usrId) {
+        Subscribe subscribe = new Subscribe();
+        subscribe.setUpdatedAt(new Date());
+        subscribe.setDisabled(true);
+        SubscribeExample subscribeExample = new SubscribeExample();
+        subscribeExample.createCriteria().andUsrIdEqualTo(usrId);
+        return subscribeMapper.updateByExample(subscribe, subscribeExample) > 0;
     }
 
 

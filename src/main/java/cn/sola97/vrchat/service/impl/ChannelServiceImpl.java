@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Date;
 import java.util.List;
 
 @Service
@@ -42,13 +43,13 @@ public class ChannelServiceImpl implements ChannelService {
         return channelMapper.insertSelective(channel);
     }
     @Override
-    public int updChannel(Channel channel){
+    public int updChannelByPrimaryKey(Channel channel) {
         return channelMapper.updateByPrimaryKeySelective(channel);
     }
     @Override
     public int insChannelElseUpd(Channel channel) {
         if(existsChannel(channel.getChannelId())){
-         return updChannel(channel);
+            return updChannelByPrimaryKey(channel);
         }
         return insChannel(channel);
     }
@@ -64,5 +65,23 @@ public class ChannelServiceImpl implements ChannelService {
         ChannelExample exapmle = new ChannelExample();
         exapmle.createCriteria().andDisabledEqualTo(true);
         return channelMapper.selectByExample(exapmle);
+    }
+
+    @Override
+    public boolean disableChannelByChannelId(String channelId) {
+        Channel channel = new Channel();
+        channel.setChannelId(channelId);
+        channel.setDisabled(true);
+        channel.setUpdatedAt(new Date());
+        return updChannelByPrimaryKey(channel) > 0;
+    }
+
+    @Override
+    public boolean enableChannelByChannelId(String channelId) {
+        Channel channel = new Channel();
+        channel.setChannelId(channelId);
+        channel.setDisabled(false);
+        channel.setUpdatedAt(new Date());
+        return updChannelByPrimaryKey(channel) > 0;
     }
 }

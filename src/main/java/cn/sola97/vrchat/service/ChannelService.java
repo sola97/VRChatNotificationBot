@@ -11,11 +11,15 @@ public interface ChannelService {
 
     int insChannel(Channel channel);
 
-    int updChannel(Channel channel);
+    int updChannelByPrimaryKey(Channel channel);
 
     int insChannelElseUpd(Channel channel);
 
     List<Channel> selAllChannel();
 
     List<Channel> selDisabledChannel();
+
+    boolean disableChannelByChannelId(String channelId);
+
+    boolean enableChannelByChannelId(String channelId);
 }

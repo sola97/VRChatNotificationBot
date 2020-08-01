@@ -9,6 +9,7 @@ import cn.sola97.vrchat.service.PingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -92,5 +93,15 @@ public class PingServiceImpl implements PingService {
         PingExample example = new PingExample();
         example.createCriteria().andChannelIdNotIn(channels).andUsrIdNotIn(usrIds).andDisabledEqualTo(false);
         return pingMapper.selectByExample(example);
+    }
+
+    @Override
+    public boolean disablePingByUsrId(String usrId) {
+        Ping ping = new Ping();
+        ping.setDisabled(true);
+        ping.setUpdatedAt(new Date());
+        PingExample pingExample = new PingExample();
+        pingExample.createCriteria().andUsrIdEqualTo(usrId);
+        return pingMapper.updateByExampleSelective(ping, pingExample) > 0;
     }
 }
