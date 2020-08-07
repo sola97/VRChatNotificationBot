@@ -25,7 +25,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Component
 public class ScheduledServiceImpl implements ScheduledService {
@@ -48,6 +48,7 @@ public class ScheduledServiceImpl implements ScheduledService {
     private Long checkChannelPeriod;
     private Long checkNonFriendPeriod;
     private Long checkModeratedPeriod;
+
     public ScheduledServiceImpl(JDAProxy jda, ScheduledExecutorService scheduledExecutorService,
                                 WebSocketConnectionManagerProxy webSocketConnectionManagerProxy,
                                 VRChatApiService vrchatApiServiceImpl, MessageService messageServiceImpl,
@@ -213,31 +214,21 @@ public class ScheduledServiceImpl implements ScheduledService {
         }
         return count;
     }
+
     private void checkOnlineUsers() {
         scheduledExecutorService.scheduleAtFixedRate(() -> {
             logger.info("开始在线好友状态检查...");
             List<UserOnline> friends = vrchatApiServiceImpl.getFriends(false);
-            List<CompletableFuture<Integer>> futures = new ArrayList<>();
-            for (UserOnline onlineUser : friends) {
-                CompletableFuture<Integer> future = CompletableFuture.supplyAsync(() -> checkOnlineUser(onlineUser), asyncExecutor);
-                futures.add(future);
-            }
-            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).exceptionally(ex -> {
-                logger.error("error on showuser:", ex);
-                return null;
-            }).join();
-
-            Map<Boolean, List<CompletableFuture<Integer>>> result = futures.stream().collect(Collectors.partitioningBy(CompletableFuture::isCompletedExceptionally));
-            ArrayList<Integer> counts = new ArrayList<>();
-            for (CompletableFuture<Integer> completableFuture : result.get(Boolean.FALSE)) {
-                try {
-                    counts.add(completableFuture.get());
-                } catch (Exception e) {
-                    logger.error("completableFutur.get counts failed." + e.getMessage());
-                }
-            }
-            int sum = counts.stream().mapToInt(Integer::intValue).sum();
-            logger.info("结束在线好友状态检查 总事件数：{}", sum);
+            AtomicInteger count = new AtomicInteger(0);
+            friends.forEach(onlineUser -> {
+                CompletableFuture.supplyAsync(() -> checkOnlineUser(onlineUser), asyncExecutor)
+                        .thenAccept(count::addAndGet)
+                        .exceptionally(e -> {
+                            logger.error("checkOnlineUsers出错:{}", Optional.ofNullable(onlineUser).map(UserOnline::getDisplayName).get(), e);
+                            return null;
+                        });
+            });
+            logger.info("结束在线好友状态检查 总事件数：{}", count.get());
         }, 0, checkOnlinePeriod, TimeUnit.SECONDS);
     }
 
@@ -306,34 +297,33 @@ public class ScheduledServiceImpl implements ScheduledService {
             logger.info("获取到非好友订阅总数：{}", usrIds.size());
             usrIds.forEach((usrId, displayName) -> {
                 CompletableFuture.runAsync(() -> {
-                    try {
-                        logger.info("正在检查用户{}  ---  ID:{}", displayName, usrId);
-                        User nonFriendUser = vrchatApiServiceImpl.getUserById(usrId, false);
-                        User cachedUser = cacheServiceImpl.getNonFriendUser(usrId);
-                        cacheServiceImpl.setNonFriendUser(nonFriendUser);
-                        if (cachedUser == null) {
-                            logger.info("用户当前没有缓存 {}  ---  ID:{}", displayName, usrId);
-                            return;
-                        }
-                        if (cachedUser.getId() == null) {
-                            logger.info("用户数据不存在 {}  ---  ID:{}", displayName, usrId);
-                            return;
-                        }
-                        if (!cachedUser.getCurrentAvatarImageUrl().equals(nonFriendUser.getCurrentAvatarImageUrl()) ||
-                                !cachedUser.getCurrentAvatarThumbnailImageUrl().equals(nonFriendUser.getCurrentAvatarThumbnailImageUrl())) {
-                            VRCEventDTO<WsFriendContent> event = VRCEventDTOFactory.createUpdateEvent(nonFriendUser, new World());
-                            logger.info("非好友：{}更换了角色", displayName);
-                            eventHandlerMapping.friendAvatar(event);
-                        }
-                        if (nonFriendUser.getBio() != null && !nonFriendUser.getBio().equals(cachedUser.getBio())) {
-                            VRCEventDTO<WsFriendContent> event = VRCEventDTOFactory.createUpdateEvent(nonFriendUser, new World());
-                            logger.info("非好友：{}更换了描述", displayName);
-                            eventHandlerMapping.friendDescription(event);
-                        }
-                    } catch (Exception e) {
-                        logger.error("检查用户：" + displayName + "出错 \n", e);
+                    logger.info("正在检查用户{}  ---  ID:{}", displayName, usrId);
+                    User nonFriendUser = vrchatApiServiceImpl.getUserById(usrId, false);
+                    User cachedUser = cacheServiceImpl.getNonFriendUser(usrId);
+                    cacheServiceImpl.setNonFriendUser(nonFriendUser);
+                    if (cachedUser == null) {
+                        logger.info("用户当前没有缓存 {}  ---  ID:{}", displayName, usrId);
+                        return;
                     }
-                }, asyncExecutor);
+                    if (cachedUser.getId() == null) {
+                        logger.info("用户数据不存在 {}  ---  ID:{}", displayName, usrId);
+                        return;
+                    }
+                    if (!cachedUser.getCurrentAvatarImageUrl().equals(nonFriendUser.getCurrentAvatarImageUrl()) ||
+                            !cachedUser.getCurrentAvatarThumbnailImageUrl().equals(nonFriendUser.getCurrentAvatarThumbnailImageUrl())) {
+                        VRCEventDTO<WsFriendContent> event = VRCEventDTOFactory.createUpdateEvent(nonFriendUser, new World());
+                        logger.info("非好友：{}更换了角色", displayName);
+                        eventHandlerMapping.friendAvatar(event);
+                    }
+                    if (nonFriendUser.getBio() != null && !nonFriendUser.getBio().equals(cachedUser.getBio())) {
+                        VRCEventDTO<WsFriendContent> event = VRCEventDTOFactory.createUpdateEvent(nonFriendUser, new World());
+                        logger.info("非好友：{}更换了描述", displayName);
+                        eventHandlerMapping.friendDescription(event);
+                    }
+                }, asyncExecutor).exceptionally(e -> {
+                    logger.error("检查用户：" + displayName + "出错 \n", e);
+                    return null;
+                });
             });
 
         }, 10, checkNonFriendPeriod, TimeUnit.SECONDS);
