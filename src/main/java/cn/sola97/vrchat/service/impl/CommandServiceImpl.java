@@ -297,21 +297,24 @@ public class CommandServiceImpl implements CommandService {
         String instance = user.getInstanceId();
         String value = WorldUtil.convertToString(world, locationMap, instance);
         embedBuilder.addField(description, value, true);
-        String lastLogin = "";
+        StringBuilder accountInfo = new StringBuilder();
+        accountInfo.append("username：").append(user.getUsername()).append("\n");
+        accountInfo.append("用户ID　：").append(user.getId());
         if (user.getLast_login() != null) {
             try {
                 SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
                 simpleDateFormat.setTimeZone(TimeZone.getTimeZone(timezone));
-                lastLogin = "\n上次登录：" + simpleDateFormat.format(user.getLast_login());
+                accountInfo.append("\n");
+                accountInfo.append("上次登录：").append(simpleDateFormat.format(user.getLast_login()));
             } catch (Exception e) {
                 logger.error("格式化上次登录时间出错 getLast_login():" + user.getLast_login(), e);
             }
         }
-
-        embedBuilder.addField("账号信息",
-                "username：" + user.getUsername() + "\n"
-                        + "用户ID　：" + user.getId() + lastLogin
-                , false);
+        if (locationMap.containsKey("location")) {
+            accountInfo.append("\n");
+            accountInfo.append("Launch　：__").append(WorldUtil.getWorldLaunchCommand(locationMap)).append("__");
+        }
+        embedBuilder.addField("帐号信息", accountInfo.toString(), false);
         return message;
     }
 

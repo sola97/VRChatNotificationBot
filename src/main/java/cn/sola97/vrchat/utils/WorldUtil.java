@@ -39,4 +39,11 @@ public class WorldUtil {
     public static String convertToStringOneLine(World world, Map<String, String> locationMap) {
         return convertToString(world, locationMap, null).replaceAll("\n", "");
     }
+
+    public static String getWorldLaunchCommand(Map<String, String> locationMap) {
+        if (locationMap.containsKey("location")) {
+            return "vrchat://launch?ref=vrchat.com&id=" + locationMap.get("location");
+        }
+        return "";
+    }
 }

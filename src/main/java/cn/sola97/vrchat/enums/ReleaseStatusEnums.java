@@ -26,6 +26,7 @@ public enum ReleaseStatusEnums {
         if (location == null) return map;
         Matcher m = pattern.matcher(location);
         if(m.find()){
+            map.put("location", location);
             map.put("worldId",m.group(1));
             map.put("instanceId",m.group(2));
             map.put("status",mMap.get(m.group(3)).getText());
