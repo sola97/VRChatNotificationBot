@@ -125,7 +125,7 @@ public class MessageServiceImpl implements MessageService {
         if (user instanceof CurrentUser) {
             user.setLocation(event.getContent().getLocation());
             user.setInstanceId(event.getContent().getInstance());
-            World world = vrchatApiServiceImpl.getWorldById(event.getContent().getWorld().getId(), true);
+            World world = vrchatApiServiceImpl.getWorldById(Optional.ofNullable(event.getContent()).map(EventContent::getWorld).map(World::getId).orElse("offline"), true);
             event.getContent().setWorld(world);
         } else {
             World world = vrchatApiServiceImpl.getWorldById(user.getWorldId(), true);
