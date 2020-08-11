@@ -117,7 +117,7 @@ public class SubscribeServiceImpl implements SubscribeService {
         subscribe.setDisabled(true);
         SubscribeExample subscribeExample = new SubscribeExample();
         subscribeExample.createCriteria().andUsrIdEqualTo(usrId);
-        return subscribeMapper.updateByExample(subscribe, subscribeExample) > 0;
+        return subscribeMapper.updateByExampleSelective(subscribe, subscribeExample) > 0;
     }
 
 
