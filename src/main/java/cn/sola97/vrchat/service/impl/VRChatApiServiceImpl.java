@@ -210,6 +210,13 @@ public class VRChatApiServiceImpl implements VRChatApiService {
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 0))
     @Override
+    public VRCResponse inviteToLocation(String location) {
+        String uri = "/instances/" + location + "/inviteToLocation";
+        return apiRestTemplate.postForObject(uri, null, VRCResponse.class);
+    }
+
+    @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 0))
+    @Override
     public List<User> getUserByDisplayName(String displayName) {
         if ("*".equals(displayName)) {
             User user = new User();
@@ -234,4 +241,6 @@ public class VRChatApiServiceImpl implements VRChatApiService {
             return allFiltered;
         }
     }
+
+
 }
