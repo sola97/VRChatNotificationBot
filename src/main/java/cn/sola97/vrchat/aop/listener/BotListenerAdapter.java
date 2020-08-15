@@ -85,11 +85,11 @@ public class BotListenerAdapter extends ListenerAdapter {
         new MessageBuilder()
                 .setContent(Optional.ofNullable(content).map(t -> t + "\n").orElse("") + String.join("\n", message.getPings()))
                 .setEmbed(embed).sendTo(jda.getTextChannelById(channelId)).queue(
-                suc -> logger.info(message.getChannelId() + "发送成功：" + embed.getAuthor().getName() + " " + message.getEmbedBuilder().getDescriptionBuilder().toString()
+                suc -> logger.info(message.getChannelId() + "发送成功：" + embed.getAuthor().getName() + " " + message.getEmbedBuilder().getDescriptionBuilder().toString().replaceAll("\n", " ")
                         + Optional.ofNullable(message.getEmbedBuilder()).map(EmbedBuilder::getFields).filter(fields -> fields.size() > 0).map(m -> m.get(0).getName() + " ").orElse("")
                         + Optional.ofNullable(message.getEmbedBuilder()).map(EmbedBuilder::getFields).filter(fields -> fields.size() > 0).map(m -> m.get(0).getValue().replaceAll("\n", " ")).orElse("")),
                 fail -> {
-                    logger.warn(message.getChannelId() + "发送失败：" + embed.getAuthor().getName() + " " + message.getEmbedBuilder().getDescriptionBuilder().toString()
+                    logger.warn(message.getChannelId() + "发送失败：" + embed.getAuthor().getName() + " " + message.getEmbedBuilder().getDescriptionBuilder().toString().replaceAll("\n", " ")
                             + Optional.ofNullable(message.getEmbedBuilder()).map(EmbedBuilder::getFields).filter(fields -> fields.size() > 0).map(m -> m.get(0).getName() + " ").orElse("")
                             + Optional.ofNullable(message.getEmbedBuilder()).map(EmbedBuilder::getFields).filter(fields -> fields.size() > 0).map(m -> m.get(0).getValue().replaceAll("\n", " ")).orElse(""));
                     try {

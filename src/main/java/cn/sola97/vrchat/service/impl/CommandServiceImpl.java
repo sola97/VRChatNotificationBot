@@ -23,6 +23,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
+import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -295,8 +296,8 @@ public class CommandServiceImpl implements CommandService {
         String description = "当前状态";
         Map<String, String> locationMap = message.getLocationMap();
         String instance = user.getInstanceId();
-        String value = WorldUtil.convertToString(world, locationMap, instance);
-        embedBuilder.addField(description, value, true);
+        String world_desc = WorldUtil.convertToString(world, locationMap, instance);
+        embedBuilder.setDescription(MessageFormat.format("**{0}**\n{1}", description, world_desc));
         StringBuilder accountInfo = new StringBuilder();
         accountInfo.append("username：").append(user.getUsername()).append("\n");
         accountInfo.append("用户ID　：").append(user.getId());
@@ -309,10 +310,6 @@ public class CommandServiceImpl implements CommandService {
             } catch (Exception e) {
                 logger.error("格式化上次登录时间出错 getLast_login():" + user.getLast_login(), e);
             }
-        }
-        if (locationMap.containsKey("location")) {
-            accountInfo.append("\n");
-            accountInfo.append("Launch　：__").append(WorldUtil.getWorldLaunchCommand(locationMap)).append("__");
         }
         embedBuilder.addField("帐号信息", accountInfo.toString(), false);
         return message;

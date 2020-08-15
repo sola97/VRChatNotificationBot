@@ -1,6 +1,7 @@
 package cn.sola97.vrchat.aop.aspect;
 
 import cn.sola97.vrchat.entity.World;
+import cn.sola97.vrchat.pojo.EventContent;
 import cn.sola97.vrchat.pojo.MessageDTO;
 import cn.sola97.vrchat.pojo.VRCEventDTO;
 import cn.sola97.vrchat.pojo.impl.WsFriendContent;
@@ -8,10 +9,13 @@ import cn.sola97.vrchat.pojo.impl.WsNotificationContent;
 import cn.sola97.vrchat.service.CacheService;
 import cn.sola97.vrchat.utils.TimeUtil;
 import cn.sola97.vrchat.utils.WorldUtil;
+import com.mysql.cj.util.StringUtils;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.entities.MessageEmbed;
 import org.aspectj.lang.ProceedingJoinPoint;
-import org.aspectj.lang.annotation.*;
+import org.aspectj.lang.annotation.After;
+import org.aspectj.lang.annotation.Around;
+import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.annotation.Pointcut;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +23,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
+import java.text.MessageFormat;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
@@ -35,10 +40,6 @@ public class FriendActionAspect {
     @Value("${cache.online.expire}")
     long expirePeriod;
 
-    @Pointcut("execution(* cn.sola97.vrchat.controller.EventHandlerMapping.*Update(..))")
-    public void friendUpdate() {
-    }
-
     @Pointcut("execution(* cn.sola97.vrchat.controller.EventHandlerMapping.friendAvatar(..))")
     public void friendAvatar() {
     }
@@ -48,11 +49,15 @@ public class FriendActionAspect {
     }
 
     @Pointcut("execution(* cn.sola97.vrchat.controller.EventHandlerMapping.*Online(..))")
-    public void friendOnline() {
+    public void allOnline() {
     }
 
     @Pointcut("execution(* cn.sola97.vrchat.controller.EventHandlerMapping.*Location(..))")
-    public void friendLocation() {
+    public void allLocation() {
+    }
+
+    @Pointcut("execution(* cn.sola97.vrchat.controller.EventHandlerMapping.*Update(..))")
+    public void allUpdate() {
     }
 
     @Pointcut("execution(* cn.sola97.vrchat.controller.EventHandlerMapping.friendOffline(..))")
@@ -79,13 +84,12 @@ public class FriendActionAspect {
     public void playerModerated() {
     }
 
-    @Before("(friendOnline() || friendLocation() || friendUpdate() || friendAvatar() || friendDescription()) && args(event)")
-    public void onlineLog(VRCEventDTO<WsFriendContent> event) {
-        logger.debug("onlineLog advise before " + event.getContent().getUserId());
-    }
+//    @Before("(allOnline() || allLocation() || allUpdate() || friendAvatar() || friendDescription()) && args(event)")
+//    public void onlineLog(VRCEventDTO<WsFriendContent> event) {
+//        logger.debug("onlineLog advise before " + event.getContent().getUserId());
+//    }
 
-    @Around("(friendOnline() || friendLocation() || friendUpdate() || friendAvatar() || friendDescription()) && args(event)")
-    public Object setLocation(ProceedingJoinPoint point, VRCEventDTO<WsFriendContent> event) throws Throwable {
+    private Object setLocation(ProceedingJoinPoint point, VRCEventDTO<? extends EventContent> event) throws Throwable {
         logger.debug("setLocation for " + event.toString());
         Object proceed = point.proceed();
         logger.debug("proceed " + point.getClass());
@@ -96,10 +100,20 @@ public class FriendActionAspect {
             EmbedBuilder embedBuilder = message.getEmbedBuilder();
             Map<String, String> locationMap = message.getLocationMap();
             String instance = event.getContent().getInstance();
-            String value = WorldUtil.convertToString(world, locationMap, instance);
-            embedBuilder.addField(description, value, true);
+            String world_desc = WorldUtil.convertToString(world, locationMap, instance);
+            embedBuilder.setDescription(MessageFormat.format("**{0}**\n{1}", description, world_desc));
         }
         return proceed;
+    }
+
+    @Around("(allOnline() || allLocation() || allUpdate() || friendAvatar() || friendDescription()|| friendOffline())  && args(event)")
+    public Object setFriendLocation(ProceedingJoinPoint point, VRCEventDTO<WsFriendContent> event) throws Throwable {
+        return setLocation(point, event);
+    }
+
+    @Around("(friendInvite())  && args(event)")
+    public Object setNotificationLocation(ProceedingJoinPoint point, VRCEventDTO<WsNotificationContent> event) throws Throwable {
+        return setLocation(point, event);
     }
 
     @After("friendAvatar() && args(event)")
@@ -113,39 +127,33 @@ public class FriendActionAspect {
     public void setDescription(VRCEventDTO<WsFriendContent> event) {
         for (MessageDTO message : event.getMessages()) {
             EmbedBuilder embedBuilder = message.getEmbedBuilder();
-            MessageEmbed.Field field = embedBuilder.getFields().get(0);
-            String name = field.getName() + "：" + event.getContent().getUser().getStatusDescription();
-            embedBuilder.clearFields();
-            embedBuilder.addField(name, field.getValue(), true);
+            StringBuilder description = embedBuilder.getDescriptionBuilder();
+            List<String> lines = StringUtils.split(description.toString(), "\n", true);
+            lines.set(0, "**更新了描述：**" + event.getContent().getUser().getStatusDescription());
+            embedBuilder.setDescription(String.join("\n", lines));
         }
     }
 
-    @Around(value = "friendOffline() && args(event)")
-    public Object setOffline(ProceedingJoinPoint point, VRCEventDTO<WsFriendContent> event) throws Throwable {
-        Object proceed = point.proceed();
-        String description = proceed.toString();
-        logger.debug("setOffline：" + description);
+    @After("friendOffline() && args(event)")
+    public void setOffline(VRCEventDTO<WsFriendContent> event) {
         List<MessageDTO> messages = event.getMessages();
         for (MessageDTO message : messages) {
             EmbedBuilder embedBuilder = message.getEmbedBuilder();
-            embedBuilder.addField(description, event.getContent().getWorld().getName(), true);
             ZonedDateTime time = cacheServiceImpl.getUserOfflineTime(event.getContent().getUserId());
             embedBuilder.addField("时间", timeUtil.formatTime(time), true);
             embedBuilder.setTimestamp(time);
         }
-
-        return proceed;
     }
 
     @Around(value = "friendActive() && args(event)")
-    public Object setOnline(ProceedingJoinPoint point, VRCEventDTO<WsFriendContent> event) throws Throwable {
+    public Object setActive(ProceedingJoinPoint point, VRCEventDTO<WsFriendContent> event) throws Throwable {
         Object proceed = point.proceed();
         String description = proceed.toString();
         logger.debug("setActive：" + description);
         List<MessageDTO> messages = event.getMessages();
         for (MessageDTO message : messages) {
             EmbedBuilder embedBuilder = message.getEmbedBuilder();
-            embedBuilder.setDescription(description);
+            embedBuilder.setDescription(MessageFormat.format("**{0}**", description));
             embedBuilder.addField("上次登录", timeUtil.formatTime(event.getContent().getUser().getLast_login()), true);
         }
         return proceed;
@@ -165,18 +173,12 @@ public class FriendActionAspect {
         return proceed;
     }
 
-    @Around(value = "friendInvite() && args(event)")
-    public Object setFriendInvite(ProceedingJoinPoint point, VRCEventDTO<WsNotificationContent> event) throws Throwable {
-        Object proceed = point.proceed();
-        String description = proceed.toString() + " " + event.getContent().getDetails().getWorldName();
-        logger.debug("setFriendInvite：" + event.getContent().getSenderUsername() + description);
-        List<MessageDTO> messages = event.getMessages();
-        for (MessageDTO message : messages) {
+    @After("friendInvite() && args(event)")
+    public void setfriendInvite(VRCEventDTO<WsNotificationContent> event) {
+        for (MessageDTO message : event.getMessages()) {
             EmbedBuilder embedBuilder = message.getEmbedBuilder();
-            embedBuilder.setDescription(description);
             embedBuilder.addField("时间", timeUtil.formatTime(event.getContent().getCreated_at()), true);
         }
-        return proceed;
     }
 
 

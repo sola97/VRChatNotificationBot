@@ -140,14 +140,20 @@ public class MessageServiceImpl implements MessageService {
         WsNotificationContent content = event.getContent();
         String senderUserId = content.getSenderUserId();
         User sender = vrchatApiServiceImpl.getUserById(senderUserId, false);
+        if (event.getContent().getType().equals("invite")) {
+            Map<String, String> map = ReleaseStatusEnums.parseLocation(event.getContent().getDetails().getWorldId());
+            sender.setWorldId(map.get("worldId"));
+            sender.setInstanceId(map.getOrDefault("instanceId", null));
+            sender.setLocation(map.get("location"));
+            content.setInstance(map.get("location"));
+        }
         World world = vrchatApiServiceImpl.getWorldById(sender.getWorldId(), true);
         content.setUser(sender);
         content.setWorld(world);
     }
 
     @Override
-    public void
-    setEmbed(User user, @Nullable World world, MessageDTO message) {
+    public void setEmbed(User user, @Nullable World world, MessageDTO message) {
         Map<String, String> locationMap = ReleaseStatusEnums.parseLocation(user.getLocation());
         if (locationMap.get("usrId") != null)
             locationMap.put("username", vrchatApiServiceImpl.getUserById(locationMap.get("usrId"), true).getDisplayName());

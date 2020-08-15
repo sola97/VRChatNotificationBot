@@ -9,7 +9,7 @@ public abstract class EventContent {
     protected User user;
     protected World world;
     protected ZonedDateTime createdAt;
-
+    protected String instance;
     public EventContent() {
     }
 
@@ -39,13 +39,21 @@ public abstract class EventContent {
         this.createdAt = createdAt;
     }
 
+    public String getInstance() {
+        return instance;
+    }
+
+    public void setInstance(String instance) {
+        this.instance = instance;
+    }
+
     @Override
     public String toString() {
         return "EventContent{" +
                 "user=" + user +
                 ", world=" + world +
                 ", createdAt=" + createdAt +
+                ", instance='" + instance + '\'' +
                 '}';
     }
-
 }

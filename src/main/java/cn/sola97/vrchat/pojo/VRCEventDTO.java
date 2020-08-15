@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class VRCEventDTO<T> {
+public class VRCEventDTO<T extends EventContent> {
     private static final Logger logger = LoggerFactory.getLogger(VRCEventDTO.class);
     private EventTypeEnums type;
     private T content;

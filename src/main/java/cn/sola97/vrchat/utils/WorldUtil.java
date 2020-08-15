@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
 
+import java.text.MessageFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -27,7 +28,7 @@ public class WorldUtil {
             }
 
             StringBuilder value = new StringBuilder()
-                    .append(world.getName()).append(":").append(locationMap.get("instanceId")).append("\n")
+                    .append(world.getName()).append(":").append(getWorldLaunchURL(locationMap)).append("\n")
                     .append(locationMap.get("username")).append(" ").append(locationMap.get("status")).append(" ").append(num).append("/").append(world.getCapacity());
             return value.toString();
         } catch (Exception e) {
@@ -40,10 +41,17 @@ public class WorldUtil {
         return convertToString(world, locationMap, null).replaceAll("\n", "");
     }
 
-    public static String getWorldLaunchCommand(Map<String, String> locationMap) {
+//    public static String getWorldLaunchCommand(Map<String, String> locationMap) {
+//        if (locationMap.containsKey("location")) {
+//            return "vrchat://launch?ref=vrchat.com&id=" + locationMap.get("location");
+//        }
+//        return "";
+//    }
+
+    private static String getWorldLaunchURL(Map<String, String> locationMap) {
         if (locationMap.containsKey("location")) {
-            return "vrchat://launch?ref=vrchat.com&id=" + locationMap.get("location");
+            return MessageFormat.format("[{0}](https://vrchat.net/launch?worldId={1}&instanceId={2})", locationMap.get("instanceId"), locationMap.get("worldId"), locationMap.get("instance"));
         }
-        return "";
+        return locationMap.get("instanceId");
     }
 }

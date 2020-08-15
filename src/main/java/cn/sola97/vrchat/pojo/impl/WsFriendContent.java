@@ -5,7 +5,6 @@ import cn.sola97.vrchat.pojo.EventContent;
 public class WsFriendContent extends EventContent {
     private String userId;
     private Boolean canRequestInvite;
-    private String instance;
     private String location;
 
     @Override
@@ -24,14 +23,6 @@ public class WsFriendContent extends EventContent {
         this.canRequestInvite = canRequestInvite;
     }
 
-    public String getInstance() {
-        return instance;
-    }
-
-    public void setInstance(String instance) {
-        this.instance = instance;
-    }
-
     public String getLocation() {
         return location;
     }
@@ -45,7 +36,6 @@ public class WsFriendContent extends EventContent {
         return "WsFriendContent{" +
                 "userId='" + userId + '\'' +
                 ", canRequestInvite=" + canRequestInvite +
-                ", instance='" + instance + '\'' +
                 ", location='" + location + '\'' +
                 "} " + super.toString();
     }
