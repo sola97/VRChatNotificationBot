@@ -79,10 +79,8 @@ public class ShowOnlinesCommand extends ChannelCommand {
                         int start = partition.indexOf(userList) * 10 + 1;
                         int end = partition.indexOf(userList) * 10 + userList.size();
                         embedBuilder.setFooter(MessageFormat.format("当前在线好友{0}人 第{1}页 {2}-{3}", users.size(), partition.indexOf(userList) + 1, start, end));
-                        if (partition.indexOf(userList) == 0 && partition.size() == 0) {
+                        if (partition.indexOf(userList) == 0) {
                             msg.editMessage(new MessageBuilder().setEmbed(embedBuilder.build()).setContent("查询成功").build()).queue();
-                        } else if (partition.indexOf(userList) == 0 && partition.size() > 0) {
-                            msg.editMessage(new MessageBuilder().setEmbed(embedBuilder.build()).build()).queue();
                         } else {
                             msg.getChannel().sendMessage(new MessageBuilder().setEmbed(embedBuilder.build()).build()).queue();
                         }
