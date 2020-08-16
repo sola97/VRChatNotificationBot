@@ -135,7 +135,9 @@ public class VRChatApiServiceImpl implements VRChatApiService {
         }
         String uri = "/users/" + id;
         User user = apiRestTemplate.getForObject(uri, User.class);
-        cacheServiceImpl.setUserCache(user);
+        if (Optional.ofNullable(user).map(User::getId).isPresent()) {
+            cacheServiceImpl.setUserCache(user);
+        }
         return user;
     }
 
@@ -246,10 +248,24 @@ public class VRChatApiServiceImpl implements VRChatApiService {
             List<User> onlinesFiltered = onlines.stream().map(user -> (User) user).filter(user -> (user).getDisplayName().matches("(?i:[\\s\\S]*" + nameOrId + "[\\s\\S]*)")).collect(Collectors.toList());
             if (onlinesFiltered.size() > 0) {
                 return onlinesFiltered;
-            } else {
-                List<UserOnline> all = vrchatApiServiceImpl.getFriendsWithCache(true);
-                return all.stream().map(user -> (User) user).filter(user -> user.getDisplayName().matches("(?i:[\\s\\S]*" + nameOrId + "[\\s\\S]*)")).collect(Collectors.toList());
+            }
+            List<UserOnline> offlines = vrchatApiServiceImpl.getFriendsWithCache(true);
+            List<User> offlineFiltered = offlines.stream().map(user -> (User) user)
+                    .filter(user -> user.getDisplayName().matches("(?i:[\\s\\S]*" + nameOrId + "[\\s\\S]*)"))
+                    .collect(Collectors.toList());
+            List<String> activeFriendsIds = cookieServiceImpl.getCurrentUser().getFriends();
+            activeFriendsIds.removeAll(onlines.stream().map(UserOnline::getId).collect(Collectors.toList()));
+            activeFriendsIds.removeAll(offlines.stream().map(UserOnline::getId).collect(Collectors.toList()));
+            for (String id : activeFriendsIds) {
+                User user = getUserById(id, true);
+                if (Optional.ofNullable(user).map(User::getDisplayName).orElse("").matches("(?i:[\\s\\S]*" + nameOrId + "[\\s\\S]*)")) {
+                    offlineFiltered.add(user);
+                }
+            }
+            if (offlineFiltered.size() > 0) {
+                return offlineFiltered;
             }
         }
+        return new ArrayList<>();
     }
 }
