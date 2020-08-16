@@ -101,7 +101,7 @@ public class CommandsController {
     }
 
     @RequestMapping("/rest/show/user")
-    public CommandResultVO showChannelUsers(@RequestParam String channelId, @RequestParam(required = false) String displayName, @RequestParam(required = false) String userId, @RequestParam String callback) {
+    public CommandResultVO showUsers(@RequestParam String channelId, @RequestParam(required = false) String displayName, @RequestParam(required = false) String userId, @RequestParam String callback) {
         try {
             if (StringUtils.isNotEmpty(userId)) {
                 return commandServiceImpl.showUserById(userId, channelId, callback);
@@ -109,10 +109,37 @@ public class CommandsController {
             if (StringUtils.isNotEmpty(displayName)) {
                 return commandServiceImpl.showUserByName(URLDecoder.decode(displayName, "UTF-8"), channelId, callback);
             }
-            return commandServiceImpl.showChannelUsers(channelId, callback);
+            return commandServiceImpl.showUserByChannelId(channelId, callback);
 
         } catch (Exception e) {
-            logger.error("showChannelUsers error", e);
+            logger.error("showUserByChannelId error", e);
+            return new CommandResultVO().setCode(500).setMsg(e.getMessage());
+        }
+    }
+
+    @RequestMapping("/rest/join/user")
+    public CommandResultVO joinUsers(@RequestParam String channelId, @RequestParam(required = false) String displayName, @RequestParam(required = false) String userId, @RequestParam String callback) {
+        try {
+            if (StringUtils.isNotEmpty(userId)) {
+                return commandServiceImpl.joinUserById(userId, channelId, callback);
+            }
+            if (StringUtils.isNotEmpty(displayName)) {
+                return commandServiceImpl.joinUserByName(URLDecoder.decode(displayName, "UTF-8"), channelId, callback);
+            }
+            return commandServiceImpl.joinUserByChannelId(channelId, callback);
+
+        } catch (Exception e) {
+            logger.error("joinUser error", e);
+            return new CommandResultVO().setCode(500).setMsg(e.getMessage());
+        }
+    }
+
+    @RequestMapping("/rest/join/world")
+    public CommandResultVO joinWorld(@RequestParam String channelId, @RequestParam String worldId, @RequestParam String instanceId, @RequestParam String callback) {
+        try {
+            return commandServiceImpl.joinLaunchURL(channelId, worldId, instanceId, callback);
+        } catch (Exception e) {
+            logger.error("joinUser error", e);
             return new CommandResultVO().setCode(500).setMsg(e.getMessage());
         }
     }

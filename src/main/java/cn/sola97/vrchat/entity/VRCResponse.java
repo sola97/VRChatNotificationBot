@@ -38,7 +38,7 @@ public class VRCResponse {
                 '}';
     }
 
-    private class Success {
+    public class Success {
         public String message;
         public Integer status_code;
 

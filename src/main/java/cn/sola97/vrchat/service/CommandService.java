@@ -14,7 +14,7 @@ public interface CommandService {
 
     CommandResultVO showConfigByChannelId(String channelId);
 
-    CommandResultVO showChannelUsers(String channelId, String callback);
+    CommandResultVO showUserByChannelId(String channelId, String callback);
 
     CommandResultVO showUserByName(String displayName, String channelId, String callback);
 
@@ -29,6 +29,8 @@ public interface CommandService {
     CommandResultVO updateSubscribeMask(String channelId, String usrId, String mask);
 
     MessageDTO showUser(String usrId, String channelId, String callback);
+
+    MessageDTO joinUser(String usrId, String channelId, String callback);
 
     CommandResultVO deleteSubscribe(String channelId, String usrId);
 
@@ -47,4 +49,12 @@ public interface CommandService {
     CommandResultVO getBotStatus();
 
     CommandResultVO showUserById(String userId, String channelId1, String callback);
+
+    CommandResultVO joinUserById(String userId, String channelId, String callback);
+
+    CommandResultVO joinUserByName(String decode, String channelId, String callback);
+
+    CommandResultVO joinUserByChannelId(String channelId, String callback);
+
+    CommandResultVO joinLaunchURL(String channelId, String worldId, String instanceId, String callback);
 }

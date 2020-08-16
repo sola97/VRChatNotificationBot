@@ -25,7 +25,7 @@ public interface VRChatApiService {
 
     Integer getVisits();
 
-    VRCResponse inviteToLocation(String instrance);
+    VRCResponse joinLocation(String instrance);
 
-    List<User> getUserByNameOrId(String displayName);
+    List<User> getUserByNameOrId(String nameOrId, Boolean online);
 }

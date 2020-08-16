@@ -5,6 +5,7 @@ import cn.sola97.vrchat.aop.proxy.WebSocketConnectionManagerProxy;
 import cn.sola97.vrchat.entity.*;
 import cn.sola97.vrchat.enums.EventTypeEnums;
 import cn.sola97.vrchat.enums.TrustCorlorEnums;
+import cn.sola97.vrchat.enums.WorldInstanceEnums;
 import cn.sola97.vrchat.pojo.ChannelConfigVO;
 import cn.sola97.vrchat.pojo.CommandResultVO;
 import cn.sola97.vrchat.pojo.MessageDTO;
@@ -66,7 +67,7 @@ public class CommandServiceImpl implements CommandService {
         if (subMask > maxMask || pingMask > maxMask || subMask < 0 || pingMask < 0)
             return new CommandResultVO().setCode(400).setMsg("mask超出范围，mask应在 0-" + maxMask + "之间");
         User user = null;
-        List<User> users = vrchatApiServiceImpl.getUserByNameOrId(userKey);
+        List<User> users = vrchatApiServiceImpl.getUserByNameOrId(userKey, null);
         if (users.size() == 1) {
             user = users.get(0);
             if (user.getId() == null) {
@@ -141,7 +142,7 @@ public class CommandServiceImpl implements CommandService {
     }
 
     @Override
-    public CommandResultVO showChannelUsers(String channelId, String callback) {
+    public CommandResultVO showUserByChannelId(String channelId, String callback) {
         CompletableFuture.supplyAsync(() -> subscribeServiceImpl.selSubscribesByChannelId(channelId), asyncExecutor)
                 .thenApply(subscribeList -> {
                     List<CompletableFuture<MessageDTO>> futures = new ArrayList<>();
@@ -178,7 +179,7 @@ public class CommandServiceImpl implements CommandService {
 
     @Override
     public CommandResultVO showUserByName(String displayName, String channelId, String callback) {
-        CompletableFuture.supplyAsync(() -> vrchatApiServiceImpl.getUserByNameOrId(displayName), asyncExecutor)
+        CompletableFuture.supplyAsync(() -> vrchatApiServiceImpl.getUserByNameOrId(displayName, null), asyncExecutor)
                 .thenApply(users -> {
                     List<CompletableFuture<MessageDTO>> futures = new ArrayList<>();
                     for (User user : users) {
@@ -271,7 +272,7 @@ public class CommandServiceImpl implements CommandService {
         if (StringUtils.isEmpty(displayName)) {
             return new CommandResultVO().setCode(400).setMsg("传入参数为空");
         }
-        List<User> users = vrchatApiServiceImpl.getUserByNameOrId(displayName);
+        List<User> users = vrchatApiServiceImpl.getUserByNameOrId(displayName, null);
         if (users.size() == 1) {
             return new CommandResultVO().setCode(200).setMsg("OK").setData(users.get(0).getId());
         } else if (users.size() > 1) {
@@ -318,6 +319,56 @@ public class CommandServiceImpl implements CommandService {
         embedBuilder.addField("帐号信息", accountInfo.toString(), false);
         return message;
     }
+
+    @Override
+    @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 1000))
+    public MessageDTO joinUser(String usrId, String channelId, String callback) {
+        if (usrId.equals("*") || StringUtils.isEmpty(usrId)) return null;
+        MessageDTO message = new MessageDTO();
+        message.setType(MessageDTO.typeEnums.SEND_TO_CHANNEL);
+        message.setChannelId(channelId);
+        if (callback != null) {
+            message.setType(MessageDTO.typeEnums.EDIT_MESSAGE);
+            message.setCallback(callback);
+        }
+        //获取用户信息
+        User user = vrchatApiServiceImpl.getUserById(usrId, false);
+        String location = user.getLocation();
+        Map<String, String> map = WorldInstanceEnums.parseLocation(location);
+        //没有location信息，无法Join
+        if (!map.containsKey("location")) {
+            if (map.containsKey("worldId")) {
+                if (map.get("worldId").equals("offline")) {
+                    message.setContent(MessageFormat.format("好友 **{0}** 当前不在线", user.getDisplayName()));
+                } else if (map.get("worldId").equals("private")) {
+                    message.setContent(MessageFormat.format("好友 **{0}** 当前在Private", user.getDisplayName()));
+                }
+            } else if (user instanceof CurrentUser) {
+                message.setContent("无法邀请自己");
+            } else {
+                message.setContent(MessageFormat.format("没有Location数据{}", user.getDisplayName()));
+            }
+            return message;
+        }
+        //调用API邀请
+        VRCResponse vrcResponse = vrchatApiServiceImpl.joinLocation(map.get("location"));
+        if (vrcResponse.getSuccess() != null && vrcResponse.getSuccess().getStatus_code().equals(200)) {
+            World world = vrchatApiServiceImpl.getWorldById(user.getWorldId(), true);
+            messageServiceImpl.setEmbed(user, world, message);
+            EmbedBuilder embedBuilder = message.getEmbedBuilder();
+            String description = "创建邀请成功";
+            Map<String, String> locationMap = message.getLocationMap();
+            String instance = user.getInstanceId();
+            String world_desc = WorldUtil.convertToString(world, locationMap, instance);
+            embedBuilder.setDescription(MessageFormat.format("**{0}**\n{1}", description, world_desc));
+            return message;
+        } else {
+            message.setContent(MessageFormat.format("创建邀请失败 error:{0} status_code:{}", vrcResponse.getError(), vrcResponse.getStatus_code()));
+            logger.warn("创建邀请失败 error:{} status_code:{} user:{}", vrcResponse, vrcResponse.getStatus_code(), user);
+            return message;
+        }
+    }
+
 
     @Override
     public CommandResultVO deleteSubscribe(String channelId, String usrId) {
@@ -412,5 +463,100 @@ public class CommandServiceImpl implements CommandService {
                 .thenAccept(messageDTO ->
                         messageServiceImpl.enqueueMessages(Collections.singletonList(messageDTO)));
         return new CommandResultVO().setCode(200).setMsg("正在查询...");
+    }
+
+    @Override
+    public CommandResultVO joinUserById(String userId, String channelId, String callback) {
+        CompletableFuture.supplyAsync(() -> joinUser(userId, channelId, callback), asyncExecutor)
+                .thenAccept(messageDTO ->
+                        messageServiceImpl.enqueueMessages(Collections.singletonList(messageDTO)));
+        return new CommandResultVO().setCode(200).setMsg("正在创建邀请...");
+    }
+
+    @Override
+    public CommandResultVO joinUserByName(String displayName, String channelId, String callback) {
+        CompletableFuture.supplyAsync(() -> vrchatApiServiceImpl.getUserByNameOrId(displayName, true), asyncExecutor) //获取在线好友
+                .thenApply(users -> {
+                    List<CompletableFuture<MessageDTO>> futures = new ArrayList<>();
+                    for (User user : users) {
+                        futures.add(CompletableFuture.supplyAsync(() -> commandServiceImpl.joinUser(user.getId(), channelId, null), asyncExecutor));
+                    }
+                    CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).exceptionally(ex -> {
+                        logger.error("error on joinUser:" + ex.getMessage());
+                        return null;
+                    }).join();
+                    return futures;
+                })
+                .thenAccept((futures) -> {
+                    Map<Boolean, List<CompletableFuture<MessageDTO>>> result = futures.stream().collect(Collectors.partitioningBy(CompletableFuture::isCompletedExceptionally));
+                    ArrayList<MessageDTO> messages = new ArrayList<>();
+                    for (CompletableFuture<MessageDTO> completableFuture : result.get(Boolean.FALSE)) {
+                        try {
+                            messages.add(completableFuture.get());
+                        } catch (Exception e) {
+                            logger.error("completableFuture.get message failed." + e.getMessage());
+                        }
+                    }
+                    MessageDTO messageDTO = new MessageDTO();
+                    messageDTO.setType(MessageDTO.typeEnums.EDIT_MESSAGE);
+                    messageDTO.setCallback(callback);
+                    messages.removeIf(Objects::isNull);
+                    messageDTO.setContent("邀请结果 Total:" + messages.size());
+                    messageDTO.setChannelId(channelId);
+                    messages.add(0, messageDTO);
+                    messageServiceImpl.enqueueMessages(messages);
+                });
+
+        return new CommandResultVO().setCode(200).setMsg("正在创建邀请...");
+    }
+
+    @Override
+    public CommandResultVO joinUserByChannelId(String channelId, String callback) {
+        CompletableFuture.supplyAsync(() -> subscribeServiceImpl.selSubscribesByChannelId(channelId), asyncExecutor)
+                .thenApply(subscribeList -> {
+                    List<CompletableFuture<MessageDTO>> futures = new ArrayList<>();
+                    for (Subscribe subscribe : subscribeList) {
+                        futures.add(CompletableFuture.supplyAsync(() -> commandServiceImpl.joinUser(subscribe.getUsrId(), channelId, null), asyncExecutor));
+                    }
+                    CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).exceptionally(ex -> {
+                        logger.error("error on joinUser:" + ex.getMessage());
+                        return null;
+                    }).join();
+                    return futures;
+                }).thenAccept((futures) -> {
+            Map<Boolean, List<CompletableFuture<MessageDTO>>> result = futures.stream().collect(Collectors.partitioningBy(CompletableFuture::isCompletedExceptionally));
+            ArrayList<MessageDTO> messages = new ArrayList<>();
+            for (CompletableFuture<MessageDTO> completableFuture : result.get(Boolean.FALSE)) {
+                try {
+                    messages.add(completableFuture.get());
+                } catch (Exception e) {
+                    logger.error("completableFuture.get message failed." + e.getMessage());
+                }
+            }
+            MessageDTO messageDTO = new MessageDTO();
+            messageDTO.setType(MessageDTO.typeEnums.EDIT_MESSAGE);
+            messageDTO.setCallback(callback);
+            messages.removeIf(Objects::isNull);
+            messageDTO.setContent("邀请结果 Total:" + messages.size());
+            messageDTO.setChannelId(channelId);
+            messages.add(0, messageDTO);
+            messageServiceImpl.enqueueMessages(messages);
+        });
+        return new CommandResultVO()
+                .setCode(200).setMsg("正在创建邀请...");
+    }
+
+    @Override
+    public CommandResultVO joinLaunchURL(String channelId, String worldId, String instanceId, String callback) {
+        String location = worldId + ":" + instanceId;
+        //调用API邀请
+        VRCResponse vrcResponse = vrchatApiServiceImpl.joinLocation(location);
+        if (vrcResponse.getSuccess() != null && vrcResponse.getSuccess().getStatus_code().equals(200)) {
+            logger.info("创建邀请成功 Launch: {}", location);
+            return new CommandResultVO().setMsg("创建邀请成功").setCode(200);
+        } else {
+            logger.warn("创建邀请失败 error:{} code:{}", vrcResponse, vrcResponse.getStatus_code());
+            return new CommandResultVO().setMsg("创建邀请失败").setCode(Integer.valueOf(vrcResponse.getStatus_code()));
+        }
     }
 }

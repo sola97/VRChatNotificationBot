@@ -65,6 +65,7 @@ public class BotConfig {
                         new ShowUserCommand(eventWaiter, cmdRestTemplate),
                         new ShowOnlinesCommand(eventWaiter, cmdRestTemplate),
                         new SearchUserCommand(eventWaiter, cmdRestTemplate),
+                        new JoinUserCommand(eventWaiter, cmdRestTemplate),
                         new ShowIPCommand(),
                         new RestartCommand(cmdRestTemplate)
                 );

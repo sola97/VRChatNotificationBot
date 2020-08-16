@@ -44,7 +44,7 @@ public class EventHandlerMapping {
             String contentType = ((WsNotificationContent) event.getContent()).getType();
             if (contentType.equals("friendRequest")) handlerMapping.notificationFriendRequest(event);
             else if (contentType.equals("requestInvite")) handlerMapping.notificationRequestInvite(event);
-            else if (contentType.equals("inviteToLocation")) handlerMapping.notificationInvite(event);
+            else if (contentType.equals("invite")) handlerMapping.notificationInvite(event);
             else
                 logger.warn("unsupport websocket notification type:" + contentType + "content:" + event.getContent().toString());
         } else handlerMapping.doNothing(event);

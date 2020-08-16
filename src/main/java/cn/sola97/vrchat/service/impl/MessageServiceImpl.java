@@ -2,10 +2,10 @@ package cn.sola97.vrchat.service.impl;
 
 import cn.sola97.vrchat.config.QueueConfig;
 import cn.sola97.vrchat.entity.*;
-import cn.sola97.vrchat.enums.ReleaseStatusEnums;
 import cn.sola97.vrchat.enums.StateEnums;
 import cn.sola97.vrchat.enums.StatusEnums;
 import cn.sola97.vrchat.enums.TrustCorlorEnums;
+import cn.sola97.vrchat.enums.WorldInstanceEnums;
 import cn.sola97.vrchat.pojo.EventContent;
 import cn.sola97.vrchat.pojo.MessageDTO;
 import cn.sola97.vrchat.pojo.VRCEventDTO;
@@ -140,8 +140,8 @@ public class MessageServiceImpl implements MessageService {
         WsNotificationContent content = event.getContent();
         String senderUserId = content.getSenderUserId();
         User sender = vrchatApiServiceImpl.getUserById(senderUserId, false);
-        if (event.getContent().getType().equals("inviteToLocation")) {
-            Map<String, String> map = ReleaseStatusEnums.parseLocation(event.getContent().getDetails().getWorldId());
+        if (event.getContent().getType().equals("joinLocation")) {
+            Map<String, String> map = WorldInstanceEnums.parseLocation(event.getContent().getDetails().getWorldId());
             sender.setWorldId(map.get("worldId"));
             sender.setInstanceId(map.getOrDefault("instanceId", null));
             sender.setLocation(map.get("location"));
@@ -154,7 +154,7 @@ public class MessageServiceImpl implements MessageService {
 
     @Override
     public void setEmbed(User user, @Nullable World world, MessageDTO message) {
-        Map<String, String> locationMap = ReleaseStatusEnums.parseLocation(user.getLocation());
+        Map<String, String> locationMap = WorldInstanceEnums.parseLocation(user.getLocation());
         if (locationMap.get("usrId") != null)
             locationMap.put("username", vrchatApiServiceImpl.getUserById(locationMap.get("usrId"), true).getDisplayName());
         Instant now = Instant.now();

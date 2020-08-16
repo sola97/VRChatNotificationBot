@@ -5,7 +5,7 @@ import cn.sola97.vrchat.aop.proxy.WebSocketConnectionManagerProxy;
 import cn.sola97.vrchat.controller.EventHandlerMapping;
 import cn.sola97.vrchat.entity.*;
 import cn.sola97.vrchat.enums.EventTypeEnums;
-import cn.sola97.vrchat.enums.ReleaseStatusEnums;
+import cn.sola97.vrchat.enums.WorldInstanceEnums;
 import cn.sola97.vrchat.pojo.VRCEventDTO;
 import cn.sola97.vrchat.pojo.impl.WsFriendContent;
 import cn.sola97.vrchat.pojo.impl.WsNotificationContent;
@@ -168,7 +168,7 @@ public class ScheduledServiceImpl implements ScheduledService {
     private Integer checkOnlineUser(UserOnline onlineUser) {
         int count = 0;
         UserOnline cachedUser = cacheServiceImpl.getOnlineUser(onlineUser.getId());
-        String worldId = ReleaseStatusEnums.parseLocation(onlineUser.getLocation()).get("worldId");
+        String worldId = WorldInstanceEnums.parseLocation(onlineUser.getLocation()).get("worldId");
         if (cachedUser == null) {
             World world = vrchatApiServiceImpl.getWorldById(worldId, true);
             VRCEventDTO<WsFriendContent> event = VRCEventDTOFactory.createOnlineEvent((User) onlineUser, world);
@@ -179,8 +179,8 @@ public class ScheduledServiceImpl implements ScheduledService {
         }
         cacheServiceImpl.setUserOnline(onlineUser);
         if (cachedUser.getLocation() != null && !cachedUser.getLocation().equals(onlineUser.getLocation())) {
-            Map<String, String> newLocationMap = ReleaseStatusEnums.parseLocation(onlineUser.getLocation());
-            Map<String, String> oldLocationMap = ReleaseStatusEnums.parseLocation(cachedUser.getLocation());
+            Map<String, String> newLocationMap = WorldInstanceEnums.parseLocation(onlineUser.getLocation());
+            Map<String, String> oldLocationMap = WorldInstanceEnums.parseLocation(cachedUser.getLocation());
             World newWorld = vrchatApiServiceImpl.getWorldById(newLocationMap.get("worldId"), true);
             World oldWorld = vrchatApiServiceImpl.getWorldById(oldLocationMap.get("worldId"), true);
             if (oldLocationMap.get("usrId") != null)

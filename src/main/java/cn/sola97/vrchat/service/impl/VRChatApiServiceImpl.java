@@ -211,14 +211,14 @@ public class VRChatApiServiceImpl implements VRChatApiService {
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 0))
     @Override
-    public VRCResponse inviteToLocation(String location) {
-        String uri = "/instances/" + location + "/inviteToLocation";
+    public VRCResponse joinLocation(String location) {
+        String uri = "/instances/" + location + "/invite";
         return apiRestTemplate.postForObject(uri, null, VRCResponse.class);
     }
 
 
     @Override
-    public List<User> getUserByNameOrId(String nameOrId) {
+    public List<User> getUserByNameOrId(String nameOrId, Boolean online) {
         if (StringUtils.isEmpty(nameOrId)) {
             return new ArrayList<>();
         }
@@ -235,16 +235,21 @@ public class VRChatApiServiceImpl implements VRChatApiService {
         if (cookieServiceImpl.getCurrentUserName().matches("(?i:[\\s\\S]*" + nameOrId + "[\\s\\S]*)")) {
             return Collections.singletonList(getCurrentUserDetails(true));
         }
-        List<UserOnline> onlines = vrchatApiServiceImpl.getFriendsWithCache(false);
-        List<User> onlinesFiltered = onlines.stream().map(user -> (User) user).filter(user -> (user).getDisplayName().matches("(?i:[\\s\\S]*" + nameOrId + "[\\s\\S]*)")).collect(Collectors.toList());
-        if (onlinesFiltered.size() > 0) {
-            return onlinesFiltered;
-        } else {
+        if (Boolean.TRUE.equals(online)) {
+            List<UserOnline> onlines = vrchatApiServiceImpl.getFriendsWithCache(false);
+            return onlines.stream().map(user -> (User) user).filter(user -> (user).getDisplayName().matches("(?i:[\\s\\S]*" + nameOrId + "[\\s\\S]*)")).collect(Collectors.toList());
+        } else if (Boolean.FALSE.equals(online)) {
             List<UserOnline> all = vrchatApiServiceImpl.getFriendsWithCache(true);
-            List<User> allFiltered = all.stream().map(user -> (User) user).filter(user -> user.getDisplayName().matches("(?i:[\\s\\S]*" + nameOrId + "[\\s\\S]*)")).collect(Collectors.toList());
-            return allFiltered;
+            return all.stream().map(user -> (User) user).filter(user -> user.getDisplayName().matches("(?i:[\\s\\S]*" + nameOrId + "[\\s\\S]*)")).collect(Collectors.toList());
+        } else {
+            List<UserOnline> onlines = vrchatApiServiceImpl.getFriendsWithCache(false);
+            List<User> onlinesFiltered = onlines.stream().map(user -> (User) user).filter(user -> (user).getDisplayName().matches("(?i:[\\s\\S]*" + nameOrId + "[\\s\\S]*)")).collect(Collectors.toList());
+            if (onlinesFiltered.size() > 0) {
+                return onlinesFiltered;
+            } else {
+                List<UserOnline> all = vrchatApiServiceImpl.getFriendsWithCache(true);
+                return all.stream().map(user -> (User) user).filter(user -> user.getDisplayName().matches("(?i:[\\s\\S]*" + nameOrId + "[\\s\\S]*)")).collect(Collectors.toList());
+            }
         }
     }
-
-
 }
