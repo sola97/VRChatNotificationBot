@@ -2,12 +2,12 @@ package cn.sola97.vrchat.controller;
 
 import cn.sola97.vrchat.pojo.CommandResultVO;
 import cn.sola97.vrchat.service.*;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -42,10 +42,10 @@ public class CommandsController {
         return new CommandResultVO().setCode(200).setMsg("It works!");
     }
 
-    @RequestMapping("/rest/add/subscribe/{channelId}/{displayName}")
-    public CommandResultVO addSubscribe(@PathVariable String channelId,
-                                        @PathVariable String displayName,
-                                        String channelName,
+    @RequestMapping("/rest/add/subscribe")
+    public CommandResultVO addSubscribe(@RequestParam String user,
+                                        @RequestParam String channelId,
+                                        @RequestParam String channelName,
                                         @RequestParam(defaultValue = "") List<String> discordIds,
                                         @RequestParam(defaultValue = "") List<String> discordNames,
                                         @RequestParam(name = "pingmask", required = false) String pingMask,
@@ -53,23 +53,23 @@ public class CommandsController {
         try {
             Byte byteSubMask = Byte.valueOf(defaultSubMask);
             Byte bytePingMask = Byte.valueOf(defaultPingMask);
-            if (pingMask != null && !"".equals(pingMask)) bytePingMask = Byte.valueOf(pingMask);
-            if (subMask != null && !"".equals(subMask)) byteSubMask = Byte.valueOf(subMask);
+            if (StringUtils.isNotEmpty(pingMask)) bytePingMask = Byte.valueOf(pingMask);
+            if (StringUtils.isNotEmpty(subMask)) byteSubMask = Byte.valueOf(subMask);
 
-            String decodedName = URLDecoder.decode(displayName, "utf8");
+            String userKey = URLDecoder.decode(user, "utf8");
             List<String> decodedDiscordIds = new ArrayList<>();
             for (String discordId : discordIds) {
                 decodedDiscordIds.add(URLDecoder.decode(discordId, "utf8"));
             }
-            return commandServiceImpl.subscribe(channelId, channelName, decodedName, decodedDiscordIds, discordNames, byteSubMask, bytePingMask);
+            return commandServiceImpl.subscribe(userKey, channelId, channelName, decodedDiscordIds, discordNames, byteSubMask, bytePingMask);
         } catch (Exception e) {
             logger.error("addSubscribe error", e);
             return new CommandResultVO().setCode(500).setMsg(e.getMessage());
         }
     }
 
-    @RequestMapping("/rest/delete/subscribe/{channelId}/{usrId}")
-    public CommandResultVO deleteSubscribe(@PathVariable String channelId, @PathVariable String usrId) {
+    @RequestMapping("/rest/delete/subscribe")
+    public CommandResultVO deleteSubscribe(@RequestParam String channelId, @RequestParam String usrId) {
         try {
             return commandServiceImpl.deleteSubscribe(channelId, usrId);
         } catch (Exception e) {
@@ -78,8 +78,8 @@ public class CommandsController {
         }
     }
 
-    @RequestMapping("/rest/delete/ping/{channelId}/{usrId}")
-    public CommandResultVO deleteSubscribe(@PathVariable String channelId, @PathVariable String usrId, @RequestParam String discordId) {
+    @RequestMapping("/rest/delete/ping")
+    public CommandResultVO deleteSubscribe(@RequestParam String channelId, @RequestParam String usrId, @RequestParam String discordId) {
         try {
             String decoded = URLDecoder.decode(discordId, "UTF-8");
             return commandServiceImpl.deletePing(channelId, usrId, decoded);
@@ -90,8 +90,8 @@ public class CommandsController {
     }
 
 
-    @RequestMapping("/rest/show/config/{channelId}")
-    public CommandResultVO showChannelConfig(@PathVariable String channelId) {
+    @RequestMapping("/rest/show/config")
+    public CommandResultVO showChannelConfig(@RequestParam String channelId) {
         try {
             return commandServiceImpl.showConfigByChannelId(channelId);
         } catch (Exception e) {
@@ -100,10 +100,17 @@ public class CommandsController {
         }
     }
 
-    @RequestMapping("/rest/show/user/{channelId}")
-    public CommandResultVO showChannelUsers(@PathVariable String channelId, @RequestParam String callback) {
+    @RequestMapping("/rest/show/user")
+    public CommandResultVO showChannelUsers(@RequestParam String channelId, @RequestParam(required = false) String displayName, @RequestParam(required = false) String userId, @RequestParam String callback) {
         try {
+            if (StringUtils.isNotEmpty(userId)) {
+                return commandServiceImpl.showUserById(userId, channelId, callback);
+            }
+            if (StringUtils.isNotEmpty(displayName)) {
+                return commandServiceImpl.showUserByName(URLDecoder.decode(displayName, "UTF-8"), channelId, callback);
+            }
             return commandServiceImpl.showChannelUsers(channelId, callback);
+
         } catch (Exception e) {
             logger.error("showChannelUsers error", e);
             return new CommandResultVO().setCode(500).setMsg(e.getMessage());
@@ -120,30 +127,10 @@ public class CommandsController {
         }
     }
 
-    @RequestMapping("/rest/show/user/{channelId}/{displayName}")
-    public CommandResultVO showUser(@PathVariable String channelId, @PathVariable String displayName, @RequestParam String callback) {
+    @RequestMapping("/rest/search/user")
+    public CommandResultVO searchUser(@RequestParam String channelId, @RequestParam String key, @RequestParam String callback) {
         try {
-            return commandServiceImpl.showUserByName(displayName, channelId, callback);
-        } catch (Exception e) {
-            logger.error("showUser error", e);
-            return new CommandResultVO().setCode(500).setMsg(e.getMessage());
-        }
-    }
-
-    @RequestMapping("/rest/show/userid/{channelId}/{userId}")
-    public CommandResultVO showUserById(@PathVariable String channelId, @PathVariable String userId, @RequestParam String callback) {
-        try {
-            return commandServiceImpl.showUserById(userId, channelId, callback);
-        } catch (Exception e) {
-            logger.error("showUserById error", e);
-            return new CommandResultVO().setCode(500).setMsg(e.getMessage());
-        }
-    }
-
-    @RequestMapping("/rest/search/user/{channelId}/{search}")
-    public CommandResultVO searchUser(@PathVariable String channelId, @PathVariable String search, @RequestParam String callback) {
-        try {
-            String decoded = URLDecoder.decode(search, "UTF-8");
+            String decoded = URLDecoder.decode(key, "UTF-8");
             return commandServiceImpl.searchUsers(channelId, decoded, callback);
         } catch (Exception e) {
             logger.error("searchUser error", e);
@@ -151,8 +138,8 @@ public class CommandsController {
         }
     }
 
-    @RequestMapping("/rest/query/ping/mask/{channelId}/{usrId}")
-    public CommandResultVO getPingMask(@PathVariable String channelId, @PathVariable String usrId, @RequestParam String discordId) {
+    @RequestMapping("/rest/query/ping/mask")
+    public CommandResultVO getPingMask(@RequestParam String channelId, @RequestParam String usrId, @RequestParam String discordId) {
         try {
             String decoded = URLDecoder.decode(discordId, "UTF-8");
             return commandServiceImpl.getPingMask(channelId, usrId, decoded);
@@ -162,18 +149,18 @@ public class CommandsController {
         }
     }
 
-    @RequestMapping("/rest/query/subscribe/mask/{channelId}/{usrId}")
-    public CommandResultVO getPingMask(@PathVariable String channelId, @PathVariable String usrId) {
+    @RequestMapping("/rest/query/subscribe/mask")
+    public CommandResultVO getSubscribeMask(@RequestParam String channelId, @RequestParam String usrId) {
         try {
             return commandServiceImpl.getSubscribeMask(channelId, usrId);
         } catch (Exception e) {
-            logger.error("getPingMask(channelId,usrId)出错", e);
+            logger.error("getSubscribeMask(channelId,usrId)出错", e);
             return new CommandResultVO().setCode(500).setMsg(e.getMessage());
         }
     }
 
-    @RequestMapping("/rest/update/subscribe/mask/{channelId}/{usrId}")
-    public CommandResultVO updateSubscribeMask(@PathVariable String channelId, @PathVariable String usrId, @RequestParam String mask) {
+    @RequestMapping("/rest/update/subscribe/mask")
+    public CommandResultVO updateSubscribeMask(@RequestParam String channelId, @RequestParam String usrId, @RequestParam String mask) {
         try {
             return commandServiceImpl.updateSubscribeMask(channelId, usrId, mask);
         } catch (Exception e) {
@@ -182,8 +169,8 @@ public class CommandsController {
         }
     }
 
-    @RequestMapping("/rest/update/ping/mask/{channelId}/{usrId}")
-    public CommandResultVO updatePingMask(@PathVariable String channelId, @PathVariable String usrId, @RequestParam String discordId, @RequestParam String mask) {
+    @RequestMapping("/rest/update/ping/mask")
+    public CommandResultVO updatePingMask(@RequestParam String channelId, @RequestParam String usrId, @RequestParam String discordId, @RequestParam String mask) {
         try {
             String decoded = URLDecoder.decode(discordId, "UTF-8");
             return commandServiceImpl.updatePingMask(channelId, usrId, decoded, mask);
@@ -193,10 +180,11 @@ public class CommandsController {
         }
     }
 
-    @RequestMapping("/rest/query/user/{displayName}")
-    public CommandResultVO getUserIdByName(@PathVariable String displayName) {
+    @RequestMapping("/rest/query/user/id")
+    public CommandResultVO getUserIdByName(@RequestParam String displayName) {
         try {
-            return commandServiceImpl.getUserIdByName(displayName);
+            String decoded = URLDecoder.decode(displayName, "UTF-8");
+            return commandServiceImpl.getUserIdByName(decoded);
         } catch (Exception e) {
             logger.error("查询用户ID出错", e);
             return new CommandResultVO().setCode(500).setMsg(e.getMessage());

@@ -12,6 +12,8 @@ import cn.sola97.vrchat.pojo.SubscribeDTO;
 import cn.sola97.vrchat.service.*;
 import cn.sola97.vrchat.utils.WorldUtil;
 import net.dv8tion.jda.api.EmbedBuilder;
+import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -59,22 +61,21 @@ public class CommandServiceImpl implements CommandService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public CommandResultVO subscribe(String channelId, String channelName, String displayName, List<String> discordIds, List<String> discordNames, Byte subMask, Byte pingMask) throws Exception {
+    public CommandResultVO subscribe(@NotNull String userKey, @NotNull String channelId, @NotNull String channelName, @NotNull List<String> discordIds, @NotNull List<String> discordNames, @NotNull Byte subMask, @NotNull Byte pingMask) throws Exception {
         int maxMask = Arrays.stream(EventTypeEnums.values()).mapToInt(EventTypeEnums::getMask).sum();
         if (subMask > maxMask || pingMask > maxMask || subMask < 0 || pingMask < 0)
             return new CommandResultVO().setCode(400).setMsg("mask超出范围，mask应在 0-" + maxMask + "之间");
         User user = null;
-
-        List<User> users = vrchatApiServiceImpl.getUserByDisplayName(displayName);
+        List<User> users = vrchatApiServiceImpl.getUserByNameOrId(userKey);
         if (users.size() == 1) {
             user = users.get(0);
             if (user.getId() == null) {
                 return new CommandResultVO().setCode(500).setMsg("没有获取到该用户的数据");
             }
         } else if (users.size() > 1) {
-            return new CommandResultVO().setCode(400).setMsg(displayName + "有多个对应用户").setData(users.stream().map(User::getDisplayName).collect(Collectors.joining("、")));
+            return new CommandResultVO().setCode(400).setMsg(userKey + "有多个对应用户").setData(users.stream().map(User::getDisplayName).collect(Collectors.joining("、")));
         } else {
-            return new CommandResultVO().setCode(404).setMsg("找不到" + displayName + "对应用户");
+            return new CommandResultVO().setCode(404).setMsg("找不到" + userKey + "对应用户");
         }
 
         int index = 0;
@@ -177,7 +178,7 @@ public class CommandServiceImpl implements CommandService {
 
     @Override
     public CommandResultVO showUserByName(String displayName, String channelId, String callback) {
-        CompletableFuture.supplyAsync(() -> vrchatApiServiceImpl.getUserByDisplayName(displayName), asyncExecutor)
+        CompletableFuture.supplyAsync(() -> vrchatApiServiceImpl.getUserByNameOrId(displayName), asyncExecutor)
                 .thenApply(users -> {
                     List<CompletableFuture<MessageDTO>> futures = new ArrayList<>();
                     for (User user : users) {
@@ -267,7 +268,10 @@ public class CommandServiceImpl implements CommandService {
 
     @Override
     public CommandResultVO getUserIdByName(String displayName) {
-        List<User> users = vrchatApiServiceImpl.getUserByDisplayName(displayName);
+        if (StringUtils.isEmpty(displayName)) {
+            return new CommandResultVO().setCode(400).setMsg("传入参数为空");
+        }
+        List<User> users = vrchatApiServiceImpl.getUserByNameOrId(displayName);
         if (users.size() == 1) {
             return new CommandResultVO().setCode(200).setMsg("OK").setData(users.get(0).getId());
         } else if (users.size() > 1) {

@@ -140,7 +140,7 @@ public class MessageServiceImpl implements MessageService {
         WsNotificationContent content = event.getContent();
         String senderUserId = content.getSenderUserId();
         User sender = vrchatApiServiceImpl.getUserById(senderUserId, false);
-        if (event.getContent().getType().equals("invite")) {
+        if (event.getContent().getType().equals("inviteToLocation")) {
             Map<String, String> map = ReleaseStatusEnums.parseLocation(event.getContent().getDetails().getWorldId());
             sender.setWorldId(map.get("worldId"));
             sender.setInstanceId(map.getOrDefault("instanceId", null));

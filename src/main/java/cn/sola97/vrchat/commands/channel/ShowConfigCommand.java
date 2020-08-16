@@ -14,7 +14,9 @@ import net.dv8tion.jda.api.MessageBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
+import java.net.URI;
 import java.util.LinkedHashMap;
 
 public class ShowConfigCommand extends ChannelCommand {
@@ -34,9 +36,12 @@ public class ShowConfigCommand extends ChannelCommand {
     @Override
     protected void execute(CommandEvent event)
     {
-        String uri = "/rest/show/config/{channelId}";
+        String uri = "/rest/show/config";
+        URI URL = UriComponentsBuilder.fromUriString(uri)
+                .queryParam("channelId", event.getChannel().getId())
+                .build().toUri();
         logger.info("正在查询Channel配置:{}", event.getChannel().getId());
-        CommandResultVO commandResult = restTemplate.getForObject(uri, CommandResultVO.class,event.getChannel().getId());
+        CommandResultVO commandResult = restTemplate.getForObject(URL.toString(), CommandResultVO.class);
         try {
             LinkedHashMap datahashmap = (LinkedHashMap) commandResult.getData();
             ObjectMapper mapper = new ObjectMapper();

@@ -15,7 +15,9 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class RemoveCommand extends ChannelCommand {
@@ -45,8 +47,11 @@ public class RemoveCommand extends ChannelCommand {
                 .useCancelButton(true)
                 .setTimeout(30, TimeUnit.SECONDS);
 
-        String uri = "/rest/show/config/{channelId}";
-        CommandResultVO commandResult = restTemplate.getForObject(uri, CommandResultVO.class, event.getChannel().getId());
+        String uri = "/rest/show/config";
+        URI URL = UriComponentsBuilder.fromUriString(uri)
+                .queryParam("channelId", event.getChannel().getId())
+                .build().toUri();
+        CommandResultVO commandResult = restTemplate.getForObject(URL.toString(), CommandResultVO.class);
         LinkedHashMap data = (LinkedHashMap) commandResult.getData();
         ObjectMapper mapper = new ObjectMapper();
         List<String> choiceText = new ArrayList<>();
@@ -102,13 +107,11 @@ public class RemoveCommand extends ChannelCommand {
     }
 
     private String deleteSubscribe(String channelId, String usrId) {
-        String uri = "/rest/delete/subscribe/{channelId}/{usrId}";
-        Map<String, Object> urlParams = new HashMap<String, Object>();
-        ;
-        urlParams.put("channelId", channelId);
-        urlParams.put("usrId", usrId);
+        String uri = "/rest/delete/subscribe";
         URI URL = UriComponentsBuilder.fromUriString(uri)
-                .buildAndExpand(urlParams).toUri();
+                .queryParam("channelId", channelId)
+                .queryParam("usrId", usrId)
+                .build().toUri();
         CommandResultVO commandResult = restTemplate.getForObject(URL.toString(), CommandResultVO.class);
         if (commandResult != null)
             return commandResult.getMsg();
@@ -117,13 +120,12 @@ public class RemoveCommand extends ChannelCommand {
     }
 
     private String deletePing(String channelId, String usrId, String discordId) {
-        String uri = "/rest/delete/ping/{channelId}/{usrId}";
-        Map<String, Object> urlParams = new HashMap<String, Object>();
-        urlParams.put("channelId", channelId);
-        urlParams.put("usrId", usrId);
+        String uri = "/rest/delete/ping";
         URI URL = UriComponentsBuilder.fromUriString(uri)
+                .queryParam("channelId", channelId)
+                .queryParam("usrId", usrId)
                 .queryParam("discordId", discordId)
-                .buildAndExpand(urlParams).toUri();
+                .build().toUri();
         CommandResultVO commandResult = restTemplate.getForObject(URL.toString(), CommandResultVO.class);
         if (commandResult != null)
             return commandResult.getMsg();

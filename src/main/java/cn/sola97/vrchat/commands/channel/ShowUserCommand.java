@@ -10,8 +10,6 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
-import java.util.HashMap;
-import java.util.Map;
 
 public class ShowUserCommand extends ChannelCommand {
     private static final Logger logger = LoggerFactory.getLogger(ShowUserCommand.class);
@@ -32,24 +30,25 @@ public class ShowUserCommand extends ChannelCommand {
 
     @Override
     protected void execute(CommandEvent event) {
-        String args = event.getArgs().trim();
-        String uri = "/rest/show/user/{channelId}/{args}";
-        String message = "正在查询好友 " + args + "...";
+        String param = event.getArgs().trim();
+        String uri = "/rest/show/user";
+        String message = "正在查询  " + param + "...";
 
-        if (args.startsWith("usr_")) {
-            uri = "/rest/show/userid/{channelId}/{args}";
-            message = "正在查询ID：" + args;
-        }
         logger.info("{} on Channel:{} - {}", message, event.getChannel().getId(), event.getChannel().getName());
-        String finalUri = uri;
         event.getChannel().sendMessage(message).queue(msg -> {
-            String argStr = event.getArgs().trim();
-            Map<String, Object> urlParams = new HashMap<>();
-            urlParams.put("channelId", event.getChannel().getId());
-            urlParams.put("args", argStr);
-            URI URL = UriComponentsBuilder.fromUriString(finalUri)
+            String displayName = "";
+            String userId = "";
+            if (param.startsWith("usr_")) {
+                userId = param;
+            } else {
+                displayName = param;
+            }
+            URI URL = UriComponentsBuilder.fromUriString(uri)
+                    .queryParam("userId", userId)
+                    .queryParam("displayName", displayName)
+                    .queryParam("channelId", event.getChannel().getId())
                     .queryParam("callback", msg.getId())
-                    .buildAndExpand(urlParams).toUri();
+                    .build().toUri();
             CommandResultVO commandResult = restTemplate.getForObject(URL.toString(), CommandResultVO.class);
             if (commandResult != null && commandResult.getCode() != 200) {
                 logger.error("ShowUserCommand URL:{}  return:{}", URL.toString(), commandResult);

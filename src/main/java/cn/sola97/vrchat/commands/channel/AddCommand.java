@@ -7,6 +7,7 @@ import com.jagrosh.jdautilities.command.CommandEvent;
 import com.jagrosh.jdautilities.commons.waiter.EventWaiter;
 import com.jagrosh.jdautilities.menu.OrderedMenu;
 import net.dv8tion.jda.api.entities.IMentionable;
+import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,9 +15,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -25,8 +24,8 @@ public class AddCommand extends ChannelCommand {
     private static final Logger logger = LoggerFactory.getLogger(AddCommand.class);
     private RestTemplate restTemplate;
     private final EventWaiter waiter;
-    public AddCommand(EventWaiter waiter,RestTemplate restTemplate)
-    {
+
+    public AddCommand(EventWaiter waiter, RestTemplate restTemplate) {
         this.waiter = waiter;
         this.name = "add";
         this.aliases = new String[]{"upd", "update"};
@@ -42,7 +41,7 @@ public class AddCommand extends ChannelCommand {
                 "    用法八：add * @届かない恋 mask 32       在该Channel设置显示所有好友的Invite、FriendRequest提醒\n" +
                 "    PS: mask值的定义可使用showconfig命令查看" +
                 "```";
-        this.restTemplate=restTemplate;
+        this.restTemplate = restTemplate;
     }
 
     @Override
@@ -53,9 +52,10 @@ public class AddCommand extends ChannelCommand {
                 .allowTextInput(true)
                 .useCancelButton(true)
                 .useNumbers()
-                .setTimeout(60, TimeUnit.SECONDS);
+                .setTimeout(60, TimeUnit.SECONDS)
+                .setCancel(Message::delete);
         String channelId = event.getChannel().getId();
-        String uri = "/rest/add/subscribe/{channelId}/{displayName}";
+        String uri = "/rest/add/subscribe";
         List<String> discordNames = event.getMessage().getMentionedUsers().stream().map(User::getName).collect(Collectors.toList());
         List<String> discordIds = event.getMessage().getMentionedUsers().stream().map(IMentionable::getAsMention).collect(Collectors.toList());
         String argStr = event.getArgs().replaceAll("<.+>", "").trim();
@@ -66,13 +66,14 @@ public class AddCommand extends ChannelCommand {
         String strMask = null;
         if (args.length > 1)
             strMask = args[1].split("\\s+")[1];
-        Map<String, Object> urlParams = new HashMap<>();
         if (args[0].equals("")) {
             args[0] = event.getChannel().getName();
         }
-        urlParams.put("channelId", channelId);
-        urlParams.put("displayName", args[0].trim());
+
+
         UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.fromUriString(uri)
+                .queryParam("user", args[0].trim())
+                .queryParam("channelId", channelId)
                 .queryParam("channelName", event.getChannel().getName())
                 .queryParam("discordIds", discordIds.toArray())
                 .queryParam("discordNames", discordNames.toArray());
@@ -81,14 +82,14 @@ public class AddCommand extends ChannelCommand {
         if (args[0].startsWith("usr_")) {
             usrId = args[0];
         } else {
-            usrId = getUsrIdByDisplayName(args[0]);
+            usrId = getUsrIdByDisplayName(args[0].trim());
         }
         if (discordIds.isEmpty()) {
             uriComponentsBuilder.queryParam("submask", strMask == null ? querySubscribeMask(channelId, usrId) : strMask);
         } else {
             uriComponentsBuilder.queryParam("pingmask", strMask == null ? queryPingMask(channelId, usrId, discordIds.get(0)) : strMask);
         }
-        URI URL = uriComponentsBuilder.buildAndExpand(urlParams).toUri();
+        URI URL = uriComponentsBuilder.build().toUri();
         String finalUsrId = usrId;
         event.getChannel().sendMessage("正在添加订阅...").queue(m -> {
             CommandResultVO commandResult = restTemplate.getForObject(URL.toString(), CommandResultVO.class);
@@ -139,24 +140,20 @@ public class AddCommand extends ChannelCommand {
                         if (sum == discordIds.size()) {
                             displayMaskMenu(event, builder, channelId, usrId, username, discordIds, discordNames);
                         } else {
-                            msg.getChannel().sendMessage("更新未完全成功 当前：" + sum + " 期望：" + discordIds.size()).queue();
+                            msg.getChannel().sendMessage("更新失败 当前成功：" + sum + " 期望：" + discordIds.size()).queue();
                         }
                     }
                 }
         );
-        builder.setCancel(msg -> {
-            msg.delete();
-        });
         builder.build().display(event.getChannel());
     }
 
     private String querySubscribeMask(String channelId, String usrId) {
-        String uri = "/rest/query/subscribe/mask/{channelId}/{usrId}";
-        Map<String, Object> urlParams = new HashMap<>();
-        urlParams.put("channelId", channelId);
-        urlParams.put("usrId", usrId);
+        String uri = "/rest/query/subscribe/mask";
         URI URL = UriComponentsBuilder.fromUriString(uri)
-                .buildAndExpand(urlParams).toUri();
+                .queryParam("channelId", channelId)
+                .queryParam("usrId", usrId)
+                .build().toUri();
         CommandResultVO commandResult = restTemplate.getForObject(URL.toString(), CommandResultVO.class);
         if (commandResult != null && commandResult.getCode() == 200) {
             return commandResult.getData().toString();
@@ -167,56 +164,56 @@ public class AddCommand extends ChannelCommand {
     }
 
     private boolean updateSubMask(String channelId, String usrId, String mask) {
-        String uri = "/rest/update/subscribe/mask/{channelId}/{usrId}";
-        Map<String, Object> urlParams = new HashMap<>();
-        urlParams.put("channelId", channelId);
-        urlParams.put("usrId", usrId);
+        String uri = "/rest/update/subscribe/mask";
         URI URL = UriComponentsBuilder.fromUriString(uri)
                 .queryParam("mask", mask)
-                .buildAndExpand(urlParams).toUri();
+                .queryParam("channelId", channelId)
+                .queryParam("usrId", usrId)
+                .build().toUri();
         CommandResultVO commandResult = restTemplate.getForObject(URL.toString(), CommandResultVO.class);
         return commandResult != null && commandResult.getCode() == 200;
     }
 
 
     private boolean updatePingMask(String channelId, String usrId, String discordId, String mask) {
-        String uri = "/rest/update/ping/mask/{channelId}/{usrId}";
-        Map<String, Object> urlParams = new HashMap<>();
-        urlParams.put("channelId", channelId);
-        urlParams.put("usrId", usrId);
-        urlParams.put("discordId", discordId);
+        String uri = "/rest/update/ping/mask";
         URI URL = UriComponentsBuilder.fromUriString(uri)
                 .queryParam("mask", mask)
+                .queryParam("channelId", channelId)
+                .queryParam("usrId", usrId)
                 .queryParam("discordId", discordId)
-                .buildAndExpand(urlParams).toUri();
+                .build().toUri();
         CommandResultVO commandResult = restTemplate.getForObject(URL.toString(), CommandResultVO.class);
         return commandResult != null && commandResult.getCode() == 200;
     }
 
     private String queryPingMask(String channelId, String usrId, String discordId) {
-        String uri = "/rest/query/ping/mask/{channelId}/{usrId}";
-        Map<String, Object> urlParams = new HashMap<>();
-        urlParams.put("channelId", channelId);
-        urlParams.put("usrId", usrId);
+        String uri = "/rest/query/ping/mask";
         URI URL = UriComponentsBuilder.fromUriString(uri)
+                .queryParam("channelId", channelId)
+                .queryParam("usrId", usrId)
                 .queryParam("discordId", discordId)
-                .buildAndExpand(urlParams).toUri();
+                .build().toUri();
         CommandResultVO commandResult = restTemplate.getForObject(URL.toString(), CommandResultVO.class);
         if (commandResult != null && commandResult.getCode() == 200) {
             return commandResult.getData().toString();
         } else {
-            logger.warn("queryPingMask URL:{} return:{}", URL.toString(), Optional.of(commandResult));
+            //没有查询到Ping记录时，为默认mask
+            logger.info("queryPingMask URL:{} return:{}", URL.toString(), Optional.of(commandResult));
             return null;
         }
     }
 
     private String getUsrIdByDisplayName(String displayName) {
-        String uri = "/rest/query/user/" + displayName;
-        CommandResultVO commandResult = restTemplate.getForObject(uri, CommandResultVO.class);
+        String uri = "/rest/query/user/id";
+        URI URL = UriComponentsBuilder.fromUriString(uri)
+                .queryParam("displayName", displayName)
+                .build().toUri();
+        CommandResultVO commandResult = restTemplate.getForObject(URL.toString(), CommandResultVO.class);
         if (commandResult != null & commandResult.getCode() == 200) {
             return commandResult.getData().toString();
         } else {
-            logger.warn("getUsrIdByDisplayName URL:{} return:{}", uri, Optional.of(commandResult));
+            logger.error("getUsrIdByDisplayName URL:{} return:{}", uri, Optional.of(commandResult));
             return null;
         }
     }

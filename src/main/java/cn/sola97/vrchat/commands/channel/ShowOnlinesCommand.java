@@ -18,7 +18,9 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
 
 public class ShowOnlinesCommand extends ChannelCommand {
     private static final Logger logger = LoggerFactory.getLogger(ShowOnlinesCommand.class);
@@ -37,10 +39,9 @@ public class ShowOnlinesCommand extends ChannelCommand {
     @Override
     protected void execute(CommandEvent event) {
         String uri = "/rest/show/user/onlines";
-        Map<String, Object> urlParams = new HashMap<String, Object>();
         URI URL = UriComponentsBuilder.fromUriString(uri)
                 .queryParam("channelId", event.getChannel().getId())
-                .buildAndExpand(urlParams).toUri();
+                .build().toUri();
         logger.info("正在查询在线好友 Channel:{} - {}", event.getChannel().getId(), event.getChannel().getName());
         event.getChannel().sendMessage("正在查询在线好友...").queue(msg -> {
             try {

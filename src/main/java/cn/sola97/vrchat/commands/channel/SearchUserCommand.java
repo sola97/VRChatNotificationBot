@@ -10,8 +10,6 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
-import java.util.HashMap;
-import java.util.Map;
 
 public class SearchUserCommand extends ChannelCommand {
     private static final Logger logger = LoggerFactory.getLogger(SearchUserCommand.class);
@@ -28,16 +26,15 @@ public class SearchUserCommand extends ChannelCommand {
 
     @Override
     protected void execute(CommandEvent event) {
-        String uri = "/rest/search/user/{channelId}/{search}";
+        String uri = "/rest/search/user";
         logger.info("正在搜索" + event.getArgs());
         event.getChannel().sendMessage("正在搜索 " + event.getArgs().trim() + "...").queue(msg -> {
             String argStr = event.getArgs().trim();
-            Map<String, Object> urlParams = new HashMap<>();
-            urlParams.put("channelId", event.getChannel().getId());
-            urlParams.put("search", argStr);
             URI URL = UriComponentsBuilder.fromUriString(uri)
+                    .queryParam("key", argStr)
+                    .queryParam("channelId", event.getChannel().getId())
                     .queryParam("callback", msg.getId())
-                    .buildAndExpand(urlParams).toUri();
+                    .build().toUri();
             CommandResultVO commandResult = restTemplate.getForObject(URL.toString(), CommandResultVO.class);
             if (commandResult != null && commandResult.getCode() != 200) {
                 logger.error("SearchUserCommand URL:{} return:{}", URL.toString(), commandResult);

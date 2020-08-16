@@ -2,13 +2,15 @@ package cn.sola97.vrchat.service;
 
 import cn.sola97.vrchat.pojo.CommandResultVO;
 import cn.sola97.vrchat.pojo.MessageDTO;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 public interface CommandService {
+
     @Transactional(rollbackFor = Exception.class)
-    CommandResultVO subscribe(String channelId, String channelName, String displayName, List<String> discordIds, List<String> discordNames, Byte subMask, Byte pingMask) throws Exception;
+    CommandResultVO subscribe(@NotNull String userKey, @NotNull String channelId, @NotNull String channelName, @NotNull List<String> discordIds, @NotNull List<String> discordNames, @NotNull Byte subMask, @NotNull Byte pingMask) throws Exception;
 
     CommandResultVO showConfigByChannelId(String channelId);
 
