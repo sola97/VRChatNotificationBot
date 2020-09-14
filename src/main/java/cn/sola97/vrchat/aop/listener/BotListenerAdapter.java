@@ -4,6 +4,7 @@ import cn.sola97.vrchat.aop.handler.WsHandler;
 import cn.sola97.vrchat.enums.WorldInstanceEnums;
 import cn.sola97.vrchat.pojo.CommandResultVO;
 import cn.sola97.vrchat.pojo.MessageDTO;
+import cn.sola97.vrchat.utils.ReflectionUtil;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.MessageBuilder;
@@ -46,6 +47,7 @@ public class BotListenerAdapter extends ListenerAdapter {
     @Autowired
     @Qualifier(value = "cmdRestTemplate")
     RestTemplate cmdRestTemplate;
+
     @Override
     public void onReady(@Nonnull ReadyEvent event) {
         JDA jda = event.getJDA();
@@ -172,6 +174,8 @@ public class BotListenerAdapter extends ListenerAdapter {
         String channelName = jda.getTextChannelById(channelId).getName();
         String content = trim(message.getContent());
         String description = Optional.ofNullable(message.getEmbedBuilder()).map(EmbedBuilder::getDescriptionBuilder).map(StringBuilder::toString).orElse("");
+        MessageEmbed.AuthorInfo authorInfo = ReflectionUtil.getAuthorInfo(message.getEmbedBuilder());
+        String authorName = authorInfo.getName();
         Optional<List<MessageEmbed.Field>> fields = Optional.ofNullable(message.getEmbedBuilder()).map(EmbedBuilder::getFields);
         StringBuilder fieldsString = new StringBuilder();
         if (fields.isPresent()) {
@@ -183,7 +187,7 @@ public class BotListenerAdapter extends ListenerAdapter {
                 fieldsString.append(trim(field.getValue()));
             }
         }
-        return MessageFormat.format("{0} -> 【频道-{1}】{2} {3} {4}", info, channelName, content, trim(description), fieldsString.toString());
+        return MessageFormat.format("{0} -> 【频道-{1}】{2} {3} {4} {5}", info, channelName, authorName, content, trim(description), fieldsString.toString());
     }
 
     private String trim(String a) {

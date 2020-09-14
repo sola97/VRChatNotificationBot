@@ -3,9 +3,8 @@ package cn.sola97.vrchat.config;
 import cn.sola97.vrchat.aop.handler.WsHandler;
 import cn.sola97.vrchat.aop.proxy.WebSocketConnectionManagerProxy;
 import cn.sola97.vrchat.service.CookieService;
-import cn.sola97.vrchat.utils.HttpUtil;
+import cn.sola97.vrchat.utils.ProxyUtil;
 import org.eclipse.jetty.client.HttpClient;
-import org.eclipse.jetty.client.HttpProxy;
 import org.eclipse.jetty.client.ProxyConfiguration;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
@@ -20,7 +19,7 @@ import org.springframework.web.socket.client.jetty.JettyWebSocketClient;
 @Configuration
 public class WsConfig {
     Logger logger = LoggerFactory.getLogger(WsConfig.class);
-    @Value("${vrchat.api.proxy:}")
+    @Value("${vrchat.websocket.proxy:}")
     String proxyString;
     @Autowired
     CookieService cookieServiceImpl;
@@ -30,18 +29,17 @@ public class WsConfig {
     @Bean
     public JettyWebSocketClient getJettyWebSocketClient() throws Exception {
         JettyWebSocketClient jettyWebSocketClient;
-        String[] hostAndPort = HttpUtil.getHostAndPort(proxyString);
-        if (hostAndPort != null) {
+        ProxyConfiguration.Proxy jettyProxy = ProxyUtil.getJettyProxy(proxyString);
+        if (jettyProxy != null) {
             try {
                 HttpClient httpClient = new HttpClient(new SslContextFactory.Client());
                 ProxyConfiguration proxyConfig = httpClient.getProxyConfiguration();
-                HttpProxy proxy = new HttpProxy(hostAndPort[0], Integer.valueOf(hostAndPort[1]));
-                proxyConfig.getProxies().add(proxy);
+                proxyConfig.getProxies().add(jettyProxy);
                 WebSocketClient webSocketClient = new WebSocketClient(httpClient);
-                httpClient.start();
                 jettyWebSocketClient = new JettyWebSocketClient(webSocketClient);
+                httpClient.start();
             } catch (Exception e) {
-                logger.error("设置websocket客户端的代理失败，请检查vrchat.api.proxy=" + proxyString + "是否正确？");
+                logger.error("设置websocket客户端的代理失败，请检查vrchat.websocket.proxy=" + proxyString + "是否正确？");
                 throw e;
             }
         } else {

@@ -1,5 +1,7 @@
 package cn.sola97.vrchat.utils;
 
+import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.client.ClientHttpResponse;
@@ -65,6 +67,23 @@ public class ReflectionUtil {
             logger.error("Access MessageHeader失败", e);
         } catch (ClassNotFoundException e) {
             logger.error("getMessageHeader", e);
+        }
+        return null;
+    }
+
+    public static MessageEmbed.AuthorInfo getAuthorInfo(EmbedBuilder embedBuilder) {
+        try {
+            Class<?> aClass = Class.forName("net.dv8tion.jda.api.EmbedBuilder");
+            Field field = aClass.getDeclaredField("author");
+            field.setAccessible(true);
+            MessageEmbed.AuthorInfo authorInfo = (MessageEmbed.AuthorInfo) field.get(embedBuilder);
+            return authorInfo;
+        } catch (NoSuchFieldException e) {
+            logger.error("获取authorInfo失败", e);
+        } catch (IllegalAccessException e) {
+            logger.error("Access authorInfo失败", e);
+        } catch (ClassNotFoundException e) {
+            logger.error("getAuthorInfo", e);
         }
         return null;
     }

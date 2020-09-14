@@ -40,8 +40,6 @@ public class CookieServiceImpl implements CookieService {
     String currentUserNameKey;
     @Value("${vrchat.currentUserFriends.expire}")
     Long currentUserFriendsExpire;
-    @Value("${vrchat.api.proxy:}")
-    String proxyString;
     @Autowired
     @Lazy
     VRChatApiService vrchatApiServiceImpl;
