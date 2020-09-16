@@ -10,5 +10,5 @@ RUN git clone https://github.com/sola97/VRChatNotificationBot.git && \
 FROM openjdk:8-jdk-alpine
 WORKDIR /
 COPY --from=builder /app.jar app.jar
-ENTRYPOINT ["java","-Djava.security.egd=file:/dev/./urandom","-jar","/app.jar","-Xmx500m","-Xms300m","-XX:+UseG1GC"]
+ENTRYPOINT ["java","-Djava.security.egd=file:/dev/./urandom","-jar","/app.jar","-Xmx256m","-Xms64m","-XX:+UseG1GC"]
 
