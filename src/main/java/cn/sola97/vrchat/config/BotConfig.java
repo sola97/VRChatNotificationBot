@@ -9,7 +9,6 @@ import cn.sola97.vrchat.utils.ProxyUtil;
 import com.jagrosh.jdautilities.command.CommandClient;
 import com.jagrosh.jdautilities.command.CommandClientBuilder;
 import com.jagrosh.jdautilities.commons.waiter.EventWaiter;
-import net.dv8tion.jda.api.AccountType;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
 import okhttp3.OkHttpClient;
@@ -40,8 +39,7 @@ public class BotConfig {
     @Bean
     public JDABuilder jdaBuilder(EventWaiter eventWaiter, CommandClient client, BotListenerAdapter botListenerAdapter) {
         Proxy proxy = ProxyUtil.getProxy(proxyString);
-        JDABuilder jdaBuilder = new JDABuilder(AccountType.BOT)
-                .setToken(token)
+        JDABuilder jdaBuilder = JDABuilder.createDefault(token)
                 .setActivity(Activity.playing("loading..."))
                 .addEventListeners(eventWaiter, client, botListenerAdapter)
                 .setAutoReconnect(true)
