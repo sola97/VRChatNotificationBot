@@ -8,6 +8,7 @@ import cn.sola97.vrchat.utils.ReflectionUtil;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.MessageBuilder;
+import net.dv8tion.jda.api.entities.GuildChannel;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.*;
@@ -122,16 +123,19 @@ public class BotListenerAdapter extends ListenerAdapter {
 
     private void sendToChannel(JDA jda, MessageDTO message, MessageEmbed embed, String content, String channelId) {
         //好友通知
-        new MessageBuilder()
-                .setContent(Optional.ofNullable(content).map(t -> t + "\n").orElse("") + String.join("\n", message.getPings()))
-                .setEmbed(embed).sendTo(jda.getTextChannelById(channelId)).queue(
-                suc -> logger.info(getMessageString(jda, channelId, message, "发送成功")),
+        jda.getTextChannelById(channelId).sendMessage(
+                new MessageBuilder()
+                        .setContent(Optional.ofNullable(content).map(t -> t + "\n").orElse("") + String.join("\n", message.getPings()))
+                        .setEmbed(embed)
+                        .build()
+        ).queue(
+                suc -> logger.info(getMessageLog(jda, channelId, message, "发送成功")),
                 fail -> {
-                    logger.info(getMessageString(jda, channelId, message, "发送失败"));
+                    logger.info(getMessageLog(jda, channelId, message, "发送失败"));
                     try {
                         redisTemplate.opsForList().leftPush(messageKey, message);
                     } catch (Exception e) {
-                        logger.error("重新放入Message出错 message:{} content:{} channelId:{}", message.toString(), content, channelId, e);
+                        logger.error("重新leftPush消息出错 message:{} content:{} channelId:{}", message.toString(), content, channelId, e);
                     }
                 });
     }
@@ -141,9 +145,9 @@ public class BotListenerAdapter extends ListenerAdapter {
         Optional.ofNullable(jda.getUserById(ownerId)).map(User::openPrivateChannel).ifPresent((opened) -> {
             opened.queue((channel) ->
             {
-                new MessageBuilder()
+                channel.sendMessage(new MessageBuilder()
                         .setContent(content)
-                        .setEmbed(embed).sendTo(channel).queue();
+                        .setEmbed(embed).build()).queue();
             });
         });
     }
@@ -170,12 +174,12 @@ public class BotListenerAdapter extends ListenerAdapter {
         });
     }
 
-    private String getMessageString(JDA jda, String channelId, MessageDTO message, String info) {
-        String channelName = jda.getTextChannelById(channelId).getName();
+    private String getMessageLog(JDA jda, String channelId, MessageDTO message, String info) {
+        String channelName = Optional.ofNullable(jda.getTextChannelById(channelId)).map(GuildChannel::getName).orElse("null");
         String content = trim(message.getContent());
         String description = Optional.ofNullable(message.getEmbedBuilder()).map(EmbedBuilder::getDescriptionBuilder).map(StringBuilder::toString).orElse("");
         MessageEmbed.AuthorInfo authorInfo = ReflectionUtil.getAuthorInfo(message.getEmbedBuilder());
-        String authorName = authorInfo.getName();
+        String authorName = Optional.ofNullable(authorInfo).map(MessageEmbed.AuthorInfo::getName).orElse("null");
         Optional<List<MessageEmbed.Field>> fields = Optional.ofNullable(message.getEmbedBuilder()).map(EmbedBuilder::getFields);
         StringBuilder fieldsString = new StringBuilder();
         if (fields.isPresent()) {
