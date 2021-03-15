@@ -85,7 +85,7 @@ public class ScheduledServiceImpl implements ScheduledService {
         updatePresence();
         checkChannelsTask();
         checkNonFriendAvatar();
-        playerModeratedCheck();
+//        playerModeratedCheck();
         if (!scheduledExecutorService.isShutdown()) logger.info("ScheduledService running ");
 
     }
