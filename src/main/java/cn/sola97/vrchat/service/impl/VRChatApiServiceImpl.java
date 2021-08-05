@@ -162,6 +162,11 @@ public class VRChatApiServiceImpl implements VRChatApiService {
     @Override
     public World getWorldById(String id, Boolean withCache) {
         if (id == null) return null;
+        if ("".equals(id)) {
+            World world = new World();
+            world.setName("");
+            return world;
+        }
         if ("private".equals(id) || "offline".equals(id)) {
             World world = new World();
             world.setId(id);
