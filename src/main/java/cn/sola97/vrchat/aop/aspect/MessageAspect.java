@@ -5,6 +5,7 @@ import cn.sola97.vrchat.pojo.VRCEventDTO;
 import cn.sola97.vrchat.pojo.impl.WsFriendContent;
 import cn.sola97.vrchat.pojo.impl.WsNotificationContent;
 import cn.sola97.vrchat.service.MessageService;
+import org.apache.commons.collections4.CollectionUtils;
 import org.aspectj.lang.annotation.After;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
@@ -51,8 +52,10 @@ public class MessageAspect {
 
     @After(value = "(friendAction()|| userAction()|| notification()) && args(event)")
     public void sendMessage(VRCEventDTO event) {
-        logger.debug("message enqueue：" + event.getContent().toString() + " " + event.getMessages().toString());
-        messageServiceImpl.enqueueMessages(event.getMessages());
+        if (CollectionUtils.isNotEmpty(event.getMessages())) {
+            logger.debug("message enqueue：" + event.getContent().toString() + " " + event.getMessages().toString());
+            messageServiceImpl.enqueueMessages(event.getMessages());
+        }
     }
 
     @Before(value = "notification() && args(event)")
