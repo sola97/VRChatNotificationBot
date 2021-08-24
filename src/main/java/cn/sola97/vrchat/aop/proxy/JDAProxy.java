@@ -39,6 +39,8 @@ public class JDAProxy {
         if (jda != null) {
             this.jda.setAutoReconnect(false);
             this.jda.shutdownNow();
+            this.jda.getHttpClient().connectionPool().evictAll();
+            this.jda.getHttpClient().dispatcher().executorService().shutdown();
             this.jda = null;
         }
     }
