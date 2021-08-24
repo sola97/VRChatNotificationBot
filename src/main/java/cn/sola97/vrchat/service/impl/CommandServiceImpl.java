@@ -440,7 +440,14 @@ public class CommandServiceImpl implements CommandService {
 
     @Override
     public CommandResultVO restartBot() {
-        jdaProxy.rebuild();
+        CompletableFuture.runAsync(() -> {
+            try {
+                Thread.sleep(1000);
+                jdaProxy.rebuild();
+            } catch (Exception e) {
+                logger.error("error on rebuild jda", e);
+            }
+        }, asyncExecutor);
         return new CommandResultVO().setCode(200).setMsg("正在重启Bot");
     }
 
